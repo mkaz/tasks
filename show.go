@@ -11,7 +11,8 @@ import (
 )
 
 func displayOpenTasks() {
-	fmt.Printf(" %s : %-50s %s\n", "ID", "Task", "Age")
+	fmt.Printf("  %s : %-10s : %-50s : %s\n", "ID", "Project", "Task", "Age")
+	fmt.Println("-----:------------:----------------------------------------------------:---------------")
 	filepath.Walk(taskDir, func(fn string, fi os.FileInfo, err error) error {
 		if err != nil {
 			log.Warn("Open tasks walk", err)
@@ -28,6 +29,8 @@ func displayOpenTasks() {
 	})
 }
 
+// displayTaskFromFile reads a task file and displays an entry
+// TODO: truncate project, name to fit display if too long
 func displayTaskFromFile(filename string) {
 	var task Task
 
@@ -36,5 +39,5 @@ func displayTaskFromFile(filename string) {
 		return
 	}
 
-	fmt.Printf("%4d: %-50s %s\n", task.ID, task.Name, humanize.Time(task.CreationDate))
+	fmt.Printf("%4d : %-10s : %-50s : %s\n", task.ID, task.Project, task.Name, humanize.Time(task.CreationDate))
 }
