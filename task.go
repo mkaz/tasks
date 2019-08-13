@@ -15,7 +15,7 @@ import (
 // Task is the primary task data structure
 type Task struct {
 	ID           int
-	Entry        string
+	Name         string
 	Project      string
 	CreationDate time.Time
 }
@@ -71,12 +71,12 @@ func getNewTaskID() int {
 	return taskID
 }
 
-func createNewTask(entry string) {
+func createNewTask(name string) {
 	// TODO: parse for project
 	project := "default"
 	task := Task{
 		ID:           getNewTaskID(),
-		Entry:        entry,
+		Name:         name,
 		Project:      project,
 		CreationDate: time.Now(),
 	}

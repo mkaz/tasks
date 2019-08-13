@@ -46,8 +46,8 @@ func main() {
 		usage()
 	}
 
-	if len(args) < 2 {
-		fmt.Println(">> Not enough args")
+	if len(args) < 1 {
+		displayOpenTasks()
 		os.Exit(0)
 	}
 

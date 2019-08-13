@@ -32,6 +32,13 @@ func (l Logger) Warn(a ...interface{}) {
 	fmt.Println(chalk.Yellow, a, chalk.Reset)
 }
 
+// WarnErrNotNil checks err value and prints and exits if not nil
+func (l Logger) WarnErrNotNil(err error, a ...interface{}) {
+	if err != nil {
+		fmt.Println(chalk.Yellow, a, chalk.Reset)
+	}
+}
+
 // Fatal always prints out and exists err=1
 func (l Logger) Fatal(a ...interface{}) {
 	fmt.Println(chalk.Red, a, chalk.Reset)
