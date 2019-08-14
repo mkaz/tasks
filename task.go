@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,10 +16,18 @@ import (
 
 // Task is the primary task data structure
 type Task struct {
-	ID           int
-	Name         string
-	Project      string
+	ID             int
+	Name           string
+	Project        string
+	Filename       string `toml:"-"`
+	Notes          []Note `toml:"Notes,omitempty"`
+	CreationDate   time.Time
+	CompletionDate time.Time
+}
+
+type Note struct {
 	CreationDate time.Time
+	Entry        string
 }
 
 // Save task to disk
@@ -90,6 +99,57 @@ func createNewTask(entry string) {
 	fmt.Printf("Task ID %d created\n", task.ID)
 }
 
+func addNoteToTask(taskID int, note string) {
+	task, err := getTaskById(taskID)
+	log.FatalErrNotNil(err, "Task not found")
+	task.Notes = append(task.Notes, Note{Entry: note, CreationDate: time.Now()})
+	task.Save()
+	fmt.Println("Note added to", task.ID)
+}
+
+// markTaskDone receives task id as input and marks as
+// done by renaming the file - just need to find the project :-/
+func markTaskDone(taskID int) {
+	task, err := getTaskById(taskID)
+	log.FatalErrNotNil(err, "Task not found")
+
+	doneFilename := filepath.Join(filepath.Dir(task.Filename), fmt.Sprintf("%d.done.toml", task.ID))
+	os.Rename(task.Filename, doneFilename)
+	fmt.Printf("Marked %d as done\n", task.ID)
+}
+
+func getTaskById(taskID int) (Task, error) {
+	var fullFilepath string
+	filename := fmt.Sprintf("%d.toml", taskID)
+	err := filepath.Walk(taskDir, func(fn string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !fi.IsDir() {
+			if filepath.Base(fn) == filename {
+				fullFilepath = fn
+				// fmt.Println("Found", fullFilepath)
+				return io.EOF
+			}
+		}
+		return nil
+	})
+	if err == io.EOF {
+		err = nil
+	}
+	log.FatalErrNotNil(err, "Error finding task")
+	return readTaskFromFilename(fullFilepath)
+}
+
+func readTaskFromFilename(filename string) (task Task, err error) {
+	_, err = toml.DecodeFile(filename, &task)
+	log.WarnErrNotNil(err, "Error decoding file")
+	task.Filename = filename
+	return
+}
+
+// parseEntry receives entry from command line and parses it
+// returning the project and name
 func parseEntry(entry string) (project, name string) {
 	var a []string
 

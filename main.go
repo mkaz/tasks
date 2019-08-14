@@ -48,6 +48,7 @@ func main() {
 
 	if len(args) < 1 {
 		displayOpenTasks()
+		fmt.Println()
 		os.Exit(0)
 	}
 
@@ -56,19 +57,30 @@ func main() {
 	case "add":
 		entry := strings.Join(args[1:], " ")
 		createNewTask(entry)
+
+	case "done":
+		taskID := getTaskID(args[1])
+		markTaskDone(taskID)
+
+	case "note":
+		taskID := getTaskID(args[1])
+		note := strings.Join(args[2:], " ")
+		addNoteToTask(taskID, note)
+
 	case "delete":
-		taskID, err := strconv.Atoi(args[1])
-		if err != nil {
-			fmt.Println("Invalid task id")
-			os.Exit(1)
-		}
-		// TODO:
+		taskID := getTaskID(args[1])
 		fmt.Printf("Deleting %d\n", taskID)
 
 	default:
 		usage()
 	}
 
+}
+
+func getTaskID(arg string) int {
+	taskID, err := strconv.Atoi(arg)
+	log.FatalErrNotNil(err, "Invalid task id")
+	return taskID
 }
 
 // Display Usage

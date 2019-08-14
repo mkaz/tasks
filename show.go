@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/dustin/go-humanize"
+	"github.com/ttacon/chalk"
 )
 
 func displayOpenTasks() {
@@ -32,12 +32,24 @@ func displayOpenTasks() {
 // displayTaskFromFile reads a task file and displays an entry
 // TODO: truncate project, name to fit display if too long
 func displayTaskFromFile(filename string) {
-	var task Task
+	task, err := readTaskFromFilename(filename)
+	if err == nil {
+		fmt.Print(getColorForProject(task.Project))
+		fmt.Printf("%4d : %-10s : %-50s : %s\n", task.ID, task.Project, task.Name, humanize.Time(task.CreationDate))
+		fmt.Print(chalk.Reset)
+	}
+}
 
-	if _, err := toml.DecodeFile(filename, &task); err != nil {
-		log.Warn("Error decoding file", err)
-		return
+func getColorForProject(project string) chalk.Color {
+	val := 0
+	colors := []chalk.Color{
+		chalk.Green, chalk.Yellow, chalk.Blue, chalk.Magenta, chalk.Cyan,
 	}
 
-	fmt.Printf("%4d : %-10s : %-50s : %s\n", task.ID, task.Project, task.Name, humanize.Time(task.CreationDate))
+	for _, s := range project {
+		val = val + int(s)
+	}
+
+	index := val % len(colors)
+	return colors[index]
 }
