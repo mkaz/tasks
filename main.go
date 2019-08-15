@@ -81,6 +81,10 @@ func main() {
 		}
 		showCompletedReport(filter)
 
+	case "show":
+		taskID := getTaskID(args[1])
+		showTask(taskID)
+
 	case "delete":
 		taskID := getTaskID(args[1])
 		deleteTask(taskID)

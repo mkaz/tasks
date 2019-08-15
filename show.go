@@ -36,6 +36,30 @@ func showOpenTasks(filter string) {
 	})
 }
 
+func showTask(taskID int) {
+	task, err := getTaskByID(taskID)
+	log.FatalErrNotNil(err, "Task not found")
+	fmt.Print(getColorForProject(task.Project))
+	fmt.Println("Name         :", task.Name)
+	fmt.Println("Project      :", task.Project)
+	fmt.Println("Created On   :", task.CreationDate.Format("Jan 2, 2006"))
+	fmt.Print(chalk.Reset)
+
+	if !task.CompletionDate.IsZero() {
+		fmt.Print(chalk.Green)
+		fmt.Println("Completed On :", task.CompletionDate.Format("Jan 2, 2006"))
+		fmt.Print(chalk.Reset)
+	}
+	if len(task.Notes) > 0 {
+		fmt.Println("\nNotes:")
+		for _, note := range task.Notes {
+			fmt.Println("    Date:", note.CreationDate.Format("Jan 2, 2006"))
+			fmt.Println("   ", note.Entry)
+			fmt.Println("----")
+		}
+	}
+}
+
 // displayTaskFromFile reads a task file and displays an entry
 func displayTaskFromFile(filename string) {
 	task, err := readTaskFromFilename(filename)

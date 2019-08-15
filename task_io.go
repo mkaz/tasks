@@ -79,17 +79,17 @@ func getNewTaskID() int {
 	return taskID
 }
 
-func getTaskById(taskID int) (Task, error) {
+func getTaskByID(taskID int) (Task, error) {
 	var fullFilepath string
-	filename := fmt.Sprintf("%d.toml", taskID)
+	f1 := fmt.Sprintf("%d.toml", taskID)
+	f2 := fmt.Sprintf("%d.done.toml", taskID)
 	err := filepath.Walk(taskDir, func(fn string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if !fi.IsDir() {
-			if filepath.Base(fn) == filename {
+			if filepath.Base(fn) == f1 || filepath.Base(fn) == f2 {
 				fullFilepath = fn
-				// fmt.Println("Found", fullFilepath)
 				return io.EOF
 			}
 		}

@@ -19,6 +19,7 @@ type Task struct {
 	CompletionDate time.Time
 }
 
+// Note is a note struct for a Task
 type Note struct {
 	CreationDate time.Time
 	Entry        string
@@ -37,7 +38,7 @@ func createNewTask(entry string) {
 }
 
 func addNoteToTask(taskID int, note string) {
-	task, err := getTaskById(taskID)
+	task, err := getTaskByID(taskID)
 	log.FatalErrNotNil(err, "Task not found")
 	task.Notes = append(task.Notes, Note{Entry: note, CreationDate: time.Now()})
 	task.Save()
@@ -47,7 +48,7 @@ func addNoteToTask(taskID int, note string) {
 // markTaskDone receives task id as input and marks as
 // done by renaming the file - just need to find the project :-/
 func markTaskDone(taskID int) {
-	task, err := getTaskById(taskID)
+	task, err := getTaskByID(taskID)
 	log.FatalErrNotNil(err, "Task not found")
 	task.CompletionDate = time.Now()
 	task.Save()
@@ -58,7 +59,7 @@ func markTaskDone(taskID int) {
 }
 
 func deleteTask(taskID int) {
-	task, err := getTaskById(taskID)
+	task, err := getTaskByID(taskID)
 	log.FatalErrNotNil(err, "Task not found")
 	task.Delete()
 	fmt.Printf("Task %d deleted\n", task.ID)
