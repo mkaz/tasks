@@ -67,9 +67,16 @@ func main() {
 		note := strings.Join(args[2:], " ")
 		addNoteToTask(taskID, note)
 
+	case "report":
+		filter := ""
+		if len(args) > 1 {
+			filter = args[1]
+		}
+		showReport(filter)
+
 	case "delete":
 		taskID := getTaskID(args[1])
-		fmt.Printf("Deleting %d\n", taskID)
+		deleteTask(taskID)
 
 	default:
 		usage()
@@ -85,8 +92,20 @@ func getTaskID(arg string) int {
 
 // Display Usage
 func usage() {
-	fmt.Println("usage: task [command] [id] [text]")
-	fmt.Println("Args:")
+	fmt.Println("usage: task [flags] [command] [id] [text]")
+	fmt.Println(`Commands:
+	add
+		Add new task, [text] required
+	done
+		Mark task as done, [id] required
+	note
+		Add note to task, [id] and [text] required
+	delete
+		Delete task, [id] required
+	report
+		Show completed tasks, [+project] optional
+	`)
+	fmt.Println("Flags:")
 	flag.PrintDefaults()
 	os.Exit(0)
 }

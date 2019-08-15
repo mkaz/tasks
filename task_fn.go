@@ -57,6 +57,13 @@ func markTaskDone(taskID int) {
 	fmt.Printf("Marked %d as done\n", task.ID)
 }
 
+func deleteTask(taskID int) {
+	task, err := getTaskById(taskID)
+	log.FatalErrNotNil(err, "Task not found")
+	task.Delete()
+	fmt.Printf("Task %d deleted\n", task.ID)
+}
+
 // parseEntry receives entry from command line and parses it
 // returning the project and name
 func parseEntry(entry string) (project, name string) {

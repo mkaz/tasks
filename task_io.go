@@ -18,7 +18,17 @@ func (t Task) Save() {
 	buf := new(bytes.Buffer)
 	err := toml.NewEncoder(buf).Encode(t)
 	log.FatalErrNotNil(err, "Saving Task to File")
-	ioutil.WriteFile(t.getTaskFilename(), buf.Bytes(), 0644)
+	ioutil.WriteFile(t.getFilename(), buf.Bytes(), 0644)
+}
+
+// Delete task from disk
+func (t Task) Delete() error {
+	filename := t.getFilename()
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		log.Warn("Task file does not exist")
+		return err
+	}
+	return os.Remove(filename)
 }
 
 // makeProjectDirectory checks to see if project directory exists
@@ -33,8 +43,8 @@ func (t Task) makeProjectDirectory() {
 	}
 }
 
-// getTaskFilename returns the filename
-func (t Task) getTaskFilename() string {
+// getFilename returns the filename
+func (t Task) getFilename() string {
 	return filepath.Join(taskDir, t.Project, strconv.Itoa(t.ID)+".toml")
 }
 
