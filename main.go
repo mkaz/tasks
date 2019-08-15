@@ -47,8 +47,15 @@ func main() {
 	}
 
 	if len(args) < 1 {
-		displayOpenTasks()
+		showOpenTasks("")
 		fmt.Println()
+		os.Exit(0)
+	}
+
+	// check for +project as first arg
+	// show tasks in project
+	if strings.HasPrefix(args[0], "+") {
+		showOpenTasks(args[0])
 		os.Exit(0)
 	}
 
@@ -72,7 +79,7 @@ func main() {
 		if len(args) > 1 {
 			filter = args[1]
 		}
-		showReport(filter)
+		showCompletedReport(filter)
 
 	case "delete":
 		taskID := getTaskID(args[1])

@@ -10,10 +10,17 @@ import (
 	"github.com/ttacon/chalk"
 )
 
-func displayOpenTasks() {
+func showOpenTasks(filter string) {
+	searchDir := taskDir
+
+	// check filter for project
+	if strings.HasPrefix(filter, "+") {
+		searchDir = filepath.Join(taskDir, filter[1:])
+	}
+
 	fmt.Printf("  %s : %-10s : %-50s : %s\n", "ID", "Project", "Task", "Age")
 	fmt.Println("-----:------------:----------------------------------------------------:---------------")
-	filepath.Walk(taskDir, func(fn string, fi os.FileInfo, err error) error {
+	filepath.Walk(searchDir, func(fn string, fi os.FileInfo, err error) error {
 		if err != nil {
 			log.Warn("Open tasks walk", err)
 			return err
@@ -50,7 +57,7 @@ func displayCompletedTaskFromFile(filename string) {
 }
 
 // showReport displays completed tasks
-func showReport(filter string) {
+func showCompletedReport(filter string) {
 	searchDir := taskDir
 
 	// check filter for project
