@@ -59,20 +59,30 @@ func main() {
 		os.Exit(0)
 	}
 
-	switch args[0] {
+	// By default:
+	//		args[0] = command
+	//      args[1] = task id
+	// But, lets be flexible if args[0] is an int
+	// lets allow args[1] to be command
+	var cmd string
+	var taskID int
+
+	// check if args[0] is int
+	if _, err := strconv.Atoi(args[0]); err == nil {
+		taskID = getTaskID(args[0])
+		cmd = args[1]
+	} else {
+		cmd = args[0]
+		if len(args) > 1 {
+			taskID = getTaskID(args[1])
+		}
+	}
+
+	switch cmd {
 
 	case "add":
 		entry := strings.Join(args[1:], " ")
 		createNewTask(entry)
-
-	case "done":
-		taskID := getTaskID(args[1])
-		markTaskDone(taskID)
-
-	case "note":
-		taskID := getTaskID(args[1])
-		note := strings.Join(args[2:], " ")
-		addNoteToTask(taskID, note)
 
 	case "report":
 		filter := ""
@@ -81,16 +91,20 @@ func main() {
 		}
 		showCompletedReport(filter)
 
+	case "done":
+		markTaskDone(taskID)
+
+	case "note":
+		note := strings.Join(args[2:], " ")
+		addNoteToTask(taskID, note)
+
 	case "show":
-		taskID := getTaskID(args[1])
 		showTask(taskID)
 
 	case "edit":
-		taskID := getTaskID(args[1])
 		openTaskInEditor(taskID)
 
 	case "delete":
-		taskID := getTaskID(args[1])
 		deleteTask(taskID)
 
 	default:
