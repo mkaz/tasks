@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -63,6 +64,15 @@ func deleteTask(taskID int) {
 	log.FatalErrNotNil(err, "Task not found")
 	task.Delete()
 	fmt.Printf("Task %d deleted\n", task.ID)
+}
+
+func openTaskInEditor(taskID int) {
+	task, err := getTaskByID(taskID)
+	log.FatalErrNotNil(err, "Task not found")
+	cmd := exec.Command("vim", task.getFilename())
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 }
 
 // parseEntry receives entry from command line and parses it

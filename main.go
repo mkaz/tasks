@@ -85,6 +85,10 @@ func main() {
 		taskID := getTaskID(args[1])
 		showTask(taskID)
 
+	case "edit":
+		taskID := getTaskID(args[1])
+		openTaskInEditor(taskID)
+
 	case "delete":
 		taskID := getTaskID(args[1])
 		deleteTask(taskID)
@@ -111,6 +115,10 @@ func usage() {
 		Mark task as done, [id] required
 	note
 		Add note to task, [id] and [text] required
+	show
+		Show task details, [id] required
+	edit
+		Open task in editor, [id] required
 	delete
 		Delete task, [id] required
 	report
