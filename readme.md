@@ -24,9 +24,9 @@ Install using `go get github.com/mkaz/task`
 Task requires a directory to be set to store task files
 
 The task directory can be set:
-- Option 1: Use --task-dir DIR flag on command-line
-- Option 2: Create task.conf in XDG_CONFIG_DIR
-- Option 3: Create $HOME/.task.conf
+- Option 1: Use `--task-dir DIR` flag on command-line
+- Option 2: Create task.conf in `XDG_CONFIG_DIR`
+- Option 3: Create `$HOME/.task.conf`
 
 The config file uses TOML format and requires TaskDir set
 Example:
@@ -35,11 +35,11 @@ Example:
  
 
 
-### License
+### Contributions and License
 
-Task is open source and free to use, it is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+Task is open source and free to use, modify, and distribute. It is licensed under the <a rel="license" href="https://opensource.org/licenses/MIT">MIT License</a>.
 
-I welcome any contributions. Please feel free to open an issues to report a bug, submit a feature. Pull requests are also welcome.
+I welcome any contributions. Please feel free to open an issue to report a bug, or submit a feature request. Pull requests are also welcome.
 
 An [mkaz](https://mkaz.blog/) contrivance.
 
