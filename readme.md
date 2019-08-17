@@ -23,13 +23,14 @@ Install using `go get github.com/mkaz/task`
 
 Task requires a directory to be set to store task files
 
-  The task directory can be set:
-	Option 1: Use --task-dir DIR flag on command-line
-	Option 2: Create task.conf in XDG_CONFIG_DIR
-	Option 3: Create $HOME/.task.conf
+The task directory can be set:
+- Option 1: Use --task-dir DIR flag on command-line
+- Option 2: Create task.conf in XDG_CONFIG_DIR
+- Option 3: Create $HOME/.task.conf
 
-  The config file uses TOML format and requires TaskDir set
-  Example:
+The config file uses TOML format and requires TaskDir set
+Example:
+
 	TaskDir='/home/username/Documents/tasks'
  
 
