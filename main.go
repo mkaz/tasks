@@ -19,6 +19,30 @@ import (
 var taskDir string
 var log Logger
 
+// Display Usage
+func usage() {
+	fmt.Println("usage: task [flags] [command] [id] [text]")
+	fmt.Println(`Commands:
+	add
+		Add new task, [text] required
+	done
+		Mark task as done, [id] required
+	note
+		Add note to task, [id] and [text] required
+	show
+		Show task details, [id] required
+	edit
+		Open task in editor, [id] required
+	delete
+		Delete task, [id] required
+	report
+		Show completed tasks, [+project] optional
+	`)
+	fmt.Println("Flags:")
+	flag.PrintDefaults()
+	os.Exit(0)
+}
+
 func init() {
 	// parse command-line parameters
 	var helpFlag = flag.Bool("help", false, "Display Help")
@@ -129,28 +153,4 @@ func getTaskID(arg string) int {
 	taskID, err := strconv.Atoi(arg)
 	log.FatalErrNotNil(err, "Invalid task id")
 	return taskID
-}
-
-// Display Usage
-func usage() {
-	fmt.Println("usage: task [flags] [command] [id] [text]")
-	fmt.Println(`Commands:
-	add
-		Add new task, [text] required
-	done
-		Mark task as done, [id] required
-	note
-		Add note to task, [id] and [text] required
-	show
-		Show task details, [id] required
-	edit
-		Open task in editor, [id] required
-	delete
-		Delete task, [id] required
-	report
-		Show completed tasks, [+project] optional
-	`)
-	fmt.Println("Flags:")
-	flag.PrintDefaults()
-	os.Exit(0)
 }
