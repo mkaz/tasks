@@ -48,9 +48,12 @@ func addNoteToTask(taskID int, note string) {
 
 // markTaskDone receives task id as input and marks as
 // done by renaming the file - just need to find the project :-/
-func markTaskDone(taskID int) {
+func markTaskDone(taskID int, note string) {
 	task, err := getTaskByID(taskID)
 	log.FatalErrNotNil(err, "Task not found")
+	if note != "" {
+		task.Notes = append(task.Notes, Note{Entry: note, CreationDate: time.Now()})
+	}
 	task.CompletionDate = time.Now()
 	task.Save()
 

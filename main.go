@@ -20,31 +20,37 @@ var taskDir string
 var log Logger
 
 func init() {
-	log.DebugLevel = true
-
-	usr, err := user.Current()
-	log.FatalErrNotNil(err)
-	// TODO: configurable
-	taskDir = filepath.Join(usr.HomeDir, "Documents", "Sync", "tasks")
-}
-
-func main() {
-
 	// parse command-line parameters
 	var helpFlag = flag.Bool("help", false, "Display Help")
+	var debugFlag = flag.Bool("debug", false, "Display extra info")
+	var quietFlag = flag.Bool("quiet", false, "Display less info")
 
 	// var today = flag.Bool("today", false, "Show todays task")
 	// var week = flag.Bool("week", false, "Show last week tasks")
 	// var from = flag.String("from", "", "Show tasks from date yyyy-mm-dd")
 	// var to = flag.String("to", "", "Show tasks to date yyyy-mm-dd")
 	// var search = flag.String("s", "", "Search for term")
-
 	flag.Parse()
-	args := flag.Args()
 
 	if *helpFlag {
 		usage()
 	}
+
+	// configure logger based on flag
+	log.DebugLevel = *debugFlag
+	log.Quiet = *quietFlag
+
+	usr, err := user.Current()
+	log.FatalErrNotNil(err)
+
+	// TODO: configurable
+	taskDir = filepath.Join(usr.HomeDir, "Documents", "Sync", "tasks")
+}
+
+// nolint: gocyclo
+func main() {
+
+	args := flag.Args()
 
 	if len(args) < 1 {
 		showOpenTasks("")
@@ -59,44 +65,21 @@ func main() {
 		os.Exit(0)
 	}
 
-	// By default:
-	//		args[0] = command
-	//      args[1] = task id
-	// But, lets be flexible if args[0] is an int
-	// lets allow args[1] to be command
-	var cmd string
-	var taskID int
-
-	// check if args[0] is int
-	if _, err := strconv.Atoi(args[0]); err == nil {
-		taskID = getTaskID(args[0])
-		cmd = args[1]
-	} else {
-		cmd = args[0]
-		if len(args) > 1 {
-			taskID = getTaskID(args[1])
-		}
-	}
+	cmd, taskID, extra := parseCommandArgs(args)
 
 	switch cmd {
 
 	case "add":
-		entry := strings.Join(args[1:], " ")
-		createNewTask(entry)
+		createNewTask(extra)
 
 	case "report":
-		filter := ""
-		if len(args) > 1 {
-			filter = args[1]
-		}
-		showCompletedReport(filter)
+		showCompletedReport(extra)
 
 	case "done":
-		markTaskDone(taskID)
+		markTaskDone(taskID, extra)
 
 	case "note":
-		note := strings.Join(args[2:], " ")
-		addNoteToTask(taskID, note)
+		addNoteToTask(taskID, extra)
 
 	case "show":
 		showTask(taskID)
@@ -111,6 +94,35 @@ func main() {
 		usage()
 	}
 
+}
+
+// parseCommand arguments into command, id, and extra
+// By default:
+//		args[0] = command
+//      args[1] = task id
+// But, lets be flexible if args[0] is an int
+// lets allow args[1] to be command
+func parseCommandArgs(args []string) (cmd string, taskID int, extra string) {
+	// check if args[0] is int
+	if _, err := strconv.Atoi(args[0]); err == nil {
+		taskID = getTaskID(args[0])
+		cmd = args[1]
+		if len(args) > 2 {
+			extra = strings.Join(args[2:], " ")
+		}
+	} else {
+		cmd = args[0]
+		if cmd == "add" || cmd == "report" {
+			extra = strings.Join(args[1:], " ")
+		} else {
+			taskID = getTaskID(args[1])
+			if len(args) > 2 {
+				extra = strings.Join(args[2:], " ")
+			}
+		}
+	}
+
+	return
 }
 
 func getTaskID(arg string) int {
