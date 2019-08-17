@@ -29,38 +29,42 @@ var tc TaskConfig
 
 // Display Usage
 func usage() {
-	fmt.Println("usage: task [flags] [command] [id] [text]")
-	fmt.Println(`Commands:
-	add
-		Add new task, [text] required
-	done
-		Mark task as done, [id] required
-	note
-		Add note to task, [id] and [text] required
-	show
-		Show task details, [id] required
-	edit
-		Open task in editor, [id] required
-	delete
-		Delete task, [id] required
-	report
-		Show completed tasks, [+project] optional
-	`)
-	fmt.Println("Flags:")
+	fmt.Println("USAGE: task [flags] [command] [id] [text]")
+	fmt.Println(`
+COMMANDS:
+  add
+	Add new task, [text] required
+  done
+	Mark task as done, [id] required
+  note
+	Add note to task, [id] and [text] required
+  show
+	Show task details, [id] required
+  edit
+	Open task in editor, [id] required
+  delete
+	Delete task, [id] required
+  report
+	Show completed tasks, [+project] optional
+ `)
+
+	fmt.Println("FLAGS:")
 	flag.PrintDefaults()
-	fmt.Println(`Configuration:
-	Task requires a directory to be set to store task files
+	fmt.Println(`
 
-	The task directory can be set:
-	  Option 1: Use --task-dir DIR flag on command-line
-	  Option 2: Create task.conf in XDG_CONFIG_DIR
-	  Option 3: Create $HOME/.task.conf
+CONFIGURATION:
 
-	The config file uses TOML format and requires TaskDir set
-	Example:
-	  TaskDir='/home/username/Documents/tasks'
-	`)
+  Task requires a directory to be set to store task files
 
+  The task directory can be set:
+	Option 1: Use --task-dir DIR flag on command-line
+	Option 2: Create task.conf in XDG_CONFIG_DIR
+	Option 3: Create $HOME/.task.conf
+
+  The config file uses TOML format and requires TaskDir set
+  Example:
+	TaskDir='/home/username/Documents/tasks'
+ `)
 	os.Exit(0)
 }
 
