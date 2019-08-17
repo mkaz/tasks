@@ -11,11 +11,11 @@ import (
 )
 
 func showOpenTasks(filter string) {
-	searchDir := taskDir
+	searchDir := tc.TaskDir
 
 	// check filter for project
 	if strings.HasPrefix(filter, "+") {
-		searchDir = filepath.Join(taskDir, filter[1:])
+		searchDir = filepath.Join(tc.TaskDir, filter[1:])
 	}
 
 	fmt.Printf("  %s : %-10s : %-50s : %s\n", "ID", "Project", "Task", "Age")
@@ -82,11 +82,11 @@ func displayCompletedTaskFromFile(filename string) {
 
 // showReport displays completed tasks
 func showCompletedReport(filter string) {
-	searchDir := taskDir
+	searchDir := tc.TaskDir
 
 	// check filter for project
 	if strings.HasPrefix(filter, "+") {
-		searchDir = filepath.Join(taskDir, filter[1:])
+		searchDir = filepath.Join(tc.TaskDir, filter[1:])
 	}
 
 	fmt.Printf("  %s : %-10s : %-50s : %s\n", "ID", "Project", "Task", "Completed")

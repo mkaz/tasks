@@ -14,10 +14,18 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 )
 
-var taskDir string
 var log Logger
+
+// TaskConfig is struct for holding config settings
+type TaskConfig struct {
+	TaskDir string
+}
+
+var tc TaskConfig
 
 // Display Usage
 func usage() {
@@ -40,6 +48,19 @@ func usage() {
 	`)
 	fmt.Println("Flags:")
 	flag.PrintDefaults()
+	fmt.Println(`Configuration:
+	Task requires a directory to be set to store task files
+
+	The task directory can be set:
+	  Option 1: Use --task-dir DIR flag on command-line
+	  Option 2: Create task.conf in XDG_CONFIG_DIR
+	  Option 3: Create $HOME/.task.conf
+
+	The config file uses TOML format and requires TaskDir set
+	Example:
+	  TaskDir='/home/username/Documents/tasks'
+	`)
+
 	os.Exit(0)
 }
 
@@ -48,6 +69,8 @@ func init() {
 	var helpFlag = flag.Bool("help", false, "Display Help")
 	var debugFlag = flag.Bool("debug", false, "Display extra info")
 	var quietFlag = flag.Bool("quiet", false, "Display less info")
+
+	var taskDirFlag = flag.String("task-dir", "", "Set task directory")
 
 	// var today = flag.Bool("today", false, "Show todays task")
 	// var week = flag.Bool("week", false, "Show last week tasks")
@@ -64,11 +87,7 @@ func init() {
 	log.DebugLevel = *debugFlag
 	log.Quiet = *quietFlag
 
-	usr, err := user.Current()
-	log.FatalErrNotNil(err)
-
-	// TODO: configurable
-	taskDir = filepath.Join(usr.HomeDir, "Documents", "Sync", "tasks")
+	tc.TaskDir = getTaskDir(*taskDirFlag)
 }
 
 // nolint: gocyclo
@@ -153,4 +172,67 @@ func getTaskID(arg string) int {
 	taskID, err := strconv.Atoi(arg)
 	log.FatalErrNotNil(err, "Invalid task id")
 	return taskID
+}
+
+// getConfigFile determines the location of the config file
+// Using XDG_CONFIG_DIR and HOME environment variables
+func getConfigFile() (configFile string) {
+
+	xdg := os.Getenv("XDG_CONFIG_DIR")
+	if xdg != "" {
+		return filepath.Join(xdg, "task.conf")
+	}
+
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal("Error getting current user")
+	}
+
+	// check if .config dir exists
+	configDir := filepath.Join(usr.HomeDir, ".config")
+	if _, err := os.Stat(configDir); os.IsExist(err) {
+		return filepath.Join(configDir, "task.conf")
+	}
+
+	// TODO: Windows
+	// TODO: Mac
+
+	return filepath.Join(usr.HomeDir, ".task.conf")
+
+}
+
+// getTaskDirFromConfig gets config file and
+// reads in task directory
+func getTaskDirFromConfig() string {
+	var taskConfig TaskConfig
+	configFile := getConfigFile()
+	log.Debug("Reading config from:", configFile)
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		log.Warn("Configuration file does not exist", configFile)
+	}
+
+	// read in configuration file
+	_, err := toml.DecodeFile(configFile, &taskConfig)
+	log.FatalErrNotNil(err, "Error decoding config file", configFile)
+
+	if taskConfig.TaskDir == "" {
+		log.Fatal("Error: TaskDir parameter not set in ", configFile)
+	}
+	return taskConfig.TaskDir
+}
+
+// getTaskDir accepts passed directory from flags
+// reads in configuration settings, or sets default
+// confirms directory exists
+func getTaskDir(dir string) string {
+	if dir == "" {
+		dir = getTaskDirFromConfig()
+	}
+
+	// check that task directory exists
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		log.Fatal("Task directory not found", dir)
+	}
+
+	return dir
 }

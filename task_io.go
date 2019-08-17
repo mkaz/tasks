@@ -35,7 +35,7 @@ func (t Task) Delete() error {
 // creates new directory if it does not exist
 func (t Task) makeProjectDirectory() {
 	// check if project directory exists
-	dirpath := filepath.Join(taskDir, t.Project)
+	dirpath := filepath.Join(tc.TaskDir, t.Project)
 	if _, err := os.Stat(dirpath); os.IsNotExist(err) {
 		log.Debug("Project directory does not exist, creating")
 		err := os.Mkdir(dirpath, 0755)
@@ -45,7 +45,7 @@ func (t Task) makeProjectDirectory() {
 
 // getFilename returns the filename
 func (t Task) getFilename() string {
-	return filepath.Join(taskDir, t.Project, strconv.Itoa(t.ID)+".toml")
+	return filepath.Join(tc.TaskDir, t.Project, strconv.Itoa(t.ID)+".toml")
 }
 
 // getNewTaskID reads the task-id file increments and returns new id
@@ -53,7 +53,7 @@ func (t Task) getFilename() string {
 func getNewTaskID() int {
 
 	// read from file
-	filename := filepath.Join(taskDir, "task-id")
+	filename := filepath.Join(tc.TaskDir, "task-id")
 
 	// check if file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
@@ -83,7 +83,7 @@ func getTaskByID(taskID int) (Task, error) {
 	var fullFilepath string
 	f1 := fmt.Sprintf("%d.toml", taskID)
 	f2 := fmt.Sprintf("%d.done.toml", taskID)
-	err := filepath.Walk(taskDir, func(fn string, fi os.FileInfo, err error) error {
+	err := filepath.Walk(tc.TaskDir, func(fn string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
