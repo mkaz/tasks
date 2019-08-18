@@ -18,6 +18,8 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+const version = "1.0.0"
+
 var log Logger
 
 // TaskConfig is struct for holding config settings
@@ -29,6 +31,8 @@ var tc TaskConfig
 
 // Display Usage
 func usage() {
+	fmt.Printf("Task v%s\n", version)
+	fmt.Println("")
 	fmt.Println("USAGE: task [flags] [command] [id] [text]")
 	fmt.Println(`
 COMMANDS:
@@ -73,6 +77,7 @@ func init() {
 	var helpFlag = flag.Bool("help", false, "Display Help")
 	var debugFlag = flag.Bool("debug", false, "Display extra info")
 	var quietFlag = flag.Bool("quiet", false, "Display less info")
+	var versionFlag = flag.Bool("version", false, "Display version")
 
 	var taskDirFlag = flag.String("task-dir", "", "Set task directory")
 
@@ -85,6 +90,11 @@ func init() {
 
 	if *helpFlag {
 		usage()
+	}
+
+	if *versionFlag {
+		fmt.Printf("Task v%s\n", version)
+		os.Exit(0)
 	}
 
 	// configure logger based on flag

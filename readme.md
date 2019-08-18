@@ -1,7 +1,7 @@
 
 # Task
 
-A simple command-line tool for task management.
+A -lsimple command-line tool for your task list.
 
 ## Data Storage
 
@@ -18,6 +18,8 @@ The directory structure, file format, and naming allows for using any set of com
 ## Install
 
 Install using `go get github.com/mkaz/task`
+
+or Download from Github releases: https://github.com/mkaz/task/releases
 
 ## Configuration
 
