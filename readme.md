@@ -1,7 +1,7 @@
 
 # Task
 
-A -lsimple command-line tool for your task list.
+A simple command-line tool for your task list.
 
 ## Data Storage
 
@@ -31,17 +31,17 @@ The task directory can be set:
 - Option 3: Create `$HOME/.task.conf`
 
 The config file uses TOML format and requires TaskDir set
+
 Example:
 
 	TaskDir='/home/username/Documents/tasks'
  
 
-
 ### Contributions and License
 
 Task is open source and free to use, modify, and distribute. It is licensed under the <a rel="license" href="https://opensource.org/licenses/MIT">MIT License</a>.
 
-I welcome any contributions. Please feel free to open an issue to report a bug, or submit a feature request. Pull requests are also welcome.
+All contributions are welcome. Use Github issues to report a bug, or submit a feature request.
 
 An [mkaz](https://mkaz.blog/) contrivance.
 
