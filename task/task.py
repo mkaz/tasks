@@ -10,6 +10,7 @@ import sqlite3
 # local
 from config import init_args
 from dbactions import *
+from reports import *
 
 
 def main():
@@ -32,6 +33,9 @@ def main():
             task = " ".join(args["args"])
             taskid = insert_task(conn, task)
             print(f"Created task id: {taskid}")
+        case "show":
+            tasks = get_tasks(conn)
+            show_tasks(tasks)
         case _:
             print("Not yet implemented")
 

@@ -1,4 +1,5 @@
 from sqlite3 import Connection
+from typing import List
 
 
 def create_schema(conn: Connection):
@@ -16,10 +17,16 @@ def create_schema(conn: Connection):
     )
 
 
+def get_tasks(conn: Connection) -> List:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks WHERE dt_completed = 0")
+    return cur.fetchall()
+
+
 def insert_task(conn: Connection, task: str) -> int:
     """Insert task into database"""
-    sql = "INSERT INTO tasks (task) VALUES (?)"
     cur = conn.cursor()
+    sql = "INSERT INTO tasks (task) VALUES (?)"
     cur.execute(sql, [task])
     conn.commit()
 
