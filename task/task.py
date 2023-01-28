@@ -52,6 +52,22 @@ def main():
                 except ValueError:
                     print(f"> Invalid task id {task_id}")
                     print(f"> Variable is type {type(task_id)}")
+        case "del":
+            # check we have arguments
+            if len(args["args"]) < 0:
+                print("> No task id specified.")
+                print("> Use: task do ID [ID] [ID]")
+                sys.exit(1)
+            for arg in args["args"]:
+                # check arg is an int
+                try:
+                    task_id = int(arg)
+                    task_delete(conn, task_id)
+                    print(f"Task #{task_id} deleted.")
+                except ValueError:
+                    print(f"> Invalid task id {task_id}")
+                    print(f"> Variable is type {type(task_id)}")
+
         case _:
             print("Not yet implemented")
 

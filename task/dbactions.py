@@ -43,3 +43,14 @@ def mark_done(conn: Connection, task_id: int):
     """
     cur.execute(sql, [task_id])
     conn.commit()
+
+
+def task_delete(conn: Connection, task_id: int):
+    """Mark task id done"""
+    cur = conn.cursor()
+    sql = """
+        DELETE FROM tasks 
+         WHERE id = ?
+    """
+    cur.execute(sql, [task_id])
+    conn.commit()

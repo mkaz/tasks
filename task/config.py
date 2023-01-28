@@ -6,7 +6,7 @@ import toml
 from typing import Dict
 
 
-cmds = ["add", "do", "note", "show", "edit", "delete", "report"]
+cmds = ["add", "del", "do", "edit", "note", "show"]
 VERSION = "2.0.0"
 
 
