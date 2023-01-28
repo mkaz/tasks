@@ -21,15 +21,15 @@ COMMANDS:
   add
 	  Add new task, [text] required
   done
-	  Mark task as done, [id] required
+	  Mark task as done, [id] ... at least one required
   note
 	  Add note to task, [id] and [text] required
   show
-	  Show task details, [id] required
+	  Show task details, [id] ... at least one required
   edit
 	  Open task in editor, [id] required
   delete
-	  Delete task, [id] required
+	  Delete task, [id] ... at least one required
   report
 	  Show completed tasks, [+project] optional
 ```

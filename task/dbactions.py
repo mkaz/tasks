@@ -31,3 +31,15 @@ def insert_task(conn: Connection, task: str) -> int:
     conn.commit()
 
     return cur.lastrowid
+
+
+def mark_done(conn: Connection, task_id: int):
+    """Mark task id done"""
+    cur = conn.cursor()
+    sql = """
+        UPDATE tasks 
+           SET dt_completed = CURRENT_TIMESTAMP
+         WHERE id = ?
+    """
+    cur.execute(sql, [task_id])
+    conn.commit()
