@@ -12,22 +12,43 @@ Data is stored in a SQLite database.
 
 :shrug-emoji:
 
+## Usage
+
+```
+USAGE: task [flags] [command] [id] [text]
+
+COMMANDS:
+  add
+	  Add new task, [text] required
+  done
+	  Mark task as done, [id] required
+  note
+	  Add note to task, [id] and [text] required
+  show
+	  Show task details, [id] required
+  edit
+	  Open task in editor, [id] required
+  delete
+	  Delete task, [id] required
+  report
+	  Show completed tasks, [+project] optional
+```
 
 ## Configuration
 
-Task requires a directory to be set to store task files
+Task uses a SQLite db to store its data.
 
-The task directory can be set:
+By default it will use your system's default data directory. You can override this default using one of the following options:
 
--   Option 1: Use `--task-db FILE` flag on command-line
--   Option 2: Create task.conf in `XDG_CONFIG_DIR`
--   Option 3: Create `$HOME/.task.conf`
+- Option 1: Use --task-db DIR flag on command-line
+- Option 2: Create task.conf in your OS config dir
+- Option 3: Create $HOME/.task.conf
 
-The config file uses TOML format and requires TaskDB set
+The task.conf config file uses TOML format and requires "taskdb" set:
 
-Example:
-
-    TaskDB='/home/username/Documents/tasks.db'
+```toml
+taskdb='/home/username/Documents/tasks.db'
+```
 
 ### Contributions and License
 
