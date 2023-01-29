@@ -17,6 +17,12 @@ def create_schema(conn: Connection):
     )
 
 
+def get_task(conn: Connection, task_id: int) -> List:
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks WHERE id = ?", [task_id])
+    return cur.fetchone()
+
+
 def get_tasks(conn: Connection) -> List:
     cur = conn.cursor()
     cur.execute("SELECT * FROM tasks WHERE dt_completed = 0")
@@ -56,6 +62,18 @@ def mark_done(conn: Connection, task_id: int):
          WHERE id = ?
     """
     cur.execute(sql, [task_id])
+    conn.commit()
+
+
+def task_update(conn: Connection, task_id: int, task: str):
+    """Update task with new text"""
+    cur = conn.cursor()
+    sql = """
+        UPDATE tasks 
+           SET task = ?
+         WHERE id = ?
+    """
+    cur.execute(sql, [task, task_id])
     conn.commit()
 
 

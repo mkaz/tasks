@@ -5,6 +5,7 @@ A simple command-line task list.
 """
 
 from pathlib import Path
+import readline
 import sqlite3
 import sys
 
@@ -66,6 +67,18 @@ def main():
                 except ValueError:
                     print(f"> Invalid task id {task_id}")
                     print(f"> Variable is type {type(task_id)}")
+        case "edit":
+            if len(args["args"]) != 1:
+                print("> edit command takes a single task id")
+                print("> Use: task edit ID")
+                sys.exit(1)
+            try:
+                task_id = int(args["args"][0])
+                task = get_task(conn, task_id)
+                new_text = input_prefill(f"Update #{task_id}: ", task[1])
+                task_update(conn, task_id, new_text)
+            except ValueError:
+                print(f"> Invalid task id {task_id}")
 
         case "show":
             if args["week"]:
@@ -78,6 +91,17 @@ def main():
 
         case _:
             print("Not yet implemented")
+
+
+def input_prefill(prompt, text):
+    def hook():
+        readline.insert_text(text)
+        readline.redisplay()
+
+    readline.set_pre_input_hook(hook)
+    result = input(prompt)
+    readline.set_pre_input_hook()
+    return result
 
 
 if __name__ == "__main__":
