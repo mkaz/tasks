@@ -1,3 +1,4 @@
+from termcolor import cprint
 from typing import List
 
 
@@ -10,16 +11,16 @@ def show_tasks(tasks: List):
 
 def show_tasks_week(new_tasks: List, com_tasks: List):
     print("")
-    print("WEEKLY REPORT")
+    cprint("WEEKLY REPORT", "magenta")
     print("-------------\n")
-    print("New tasks this week")
+    cprint("New this week", "yellow")
     print("----- ---------------------------------- ")
     row = "{id:4d}   {task:32s}   ".format
     for task in new_tasks:
         print(row(id=task[0], task=task[1]))
 
     print("\n")
-    print("Completed tasks this week")
+    cprint("Completed this week", "green")
     print("----- ---------------------------------- ")
     row = "{id:4d}   {task:32s}  ✅".format
     for task in com_tasks:
