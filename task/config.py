@@ -16,8 +16,8 @@ def init_args() -> Dict:
     parser.add_argument("-i", "--info", action="store_true")
     parser.add_argument("--taskdb", help="SQLite file")
     parser.add_argument("-v", "--version", action="store_true")
-    parser.add_argument("command", choices=cmds)
-    parser.add_argument("args", nargs="*")
+    parser.add_argument("command", choices=cmds, nargs="?")
+    parser.add_argument("args", nargs=argparse.REMAINDER)
     args = vars(parser.parse_args())
 
     if args["version"]:
@@ -26,6 +26,9 @@ def init_args() -> Dict:
 
     if args["taskdb"] is None:
         args["taskdb"] = get_taskdb_loc()
+
+    if args["command"] is None:
+        args["command"] = "show"
 
     return args
 
