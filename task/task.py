@@ -34,24 +34,7 @@ def main():
             task = " ".join(args["args"])
             task_id = insert_task(conn, task)
             print(f"Created Task #{task_id}")
-        case "show":
-            tasks = get_tasks(conn)
-            show_tasks(tasks)
-        case "do":
-            # check we have arguments
-            if len(args["args"]) < 0:
-                print("> No task id specified.")
-                print("> Use: task do ID [ID] [ID]")
-                sys.exit(1)
-            for arg in args["args"]:
-                # check arg is an int
-                try:
-                    task_id = int(arg)
-                    mark_done(conn, task_id)
-                    print(f"Task #{task_id} marked done.")
-                except ValueError:
-                    print(f"> Invalid task id {task_id}")
-                    print(f"> Variable is type {type(task_id)}")
+
         case "del":
             # check we have arguments
             if len(args["args"]) < 0:
@@ -67,6 +50,31 @@ def main():
                 except ValueError:
                     print(f"> Invalid task id {task_id}")
                     print(f"> Variable is type {type(task_id)}")
+
+        case "do":
+            # check we have arguments
+            if len(args["args"]) < 0:
+                print("> No task id specified.")
+                print("> Use: task do ID [ID] [ID]")
+                sys.exit(1)
+            for arg in args["args"]:
+                # check arg is an int
+                try:
+                    task_id = int(arg)
+                    mark_done(conn, task_id)
+                    print(f"Task #{task_id} marked done.")
+                except ValueError:
+                    print(f"> Invalid task id {task_id}")
+                    print(f"> Variable is type {type(task_id)}")
+
+        case "show":
+            if args["week"]:
+                new = get_tasks_new(conn, days=7)
+                com = get_tasks_com(conn, days=7)
+                show_tasks_week(new, com)
+            else:
+                tasks = get_tasks(conn)
+                show_tasks(tasks)
 
         case _:
             print("Not yet implemented")

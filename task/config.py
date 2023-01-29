@@ -13,6 +13,7 @@ VERSION = "2.0.0"
 def init_args() -> Dict:
     """Parse and return the arguments."""
     parser = argparse.ArgumentParser(description="task list")
+    parser.add_argument("-w", "--week", action="store_true", help="Weekly report")
     parser.add_argument("-i", "--info", action="store_true")
     parser.add_argument("--taskdb", help="SQLite file")
     parser.add_argument("-v", "--version", action="store_true")

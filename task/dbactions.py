@@ -23,6 +23,20 @@ def get_tasks(conn: Connection) -> List:
     return cur.fetchall()
 
 
+def get_tasks_new(conn: Connection, days: int) -> List:
+    cur = conn.cursor()
+    sql = f"SELECT * FROM tasks WHERE dt_completed = 0 AND dt_created >= date('now', '-{days} days')"
+    cur.execute(sql)
+    return cur.fetchall()
+
+
+def get_tasks_com(conn: Connection, days: int) -> List:
+    cur = conn.cursor()
+    sql = f"SELECT * FROM tasks WHERE dt_completed > 0 AND dt_created >= date('now', '-{days} days')"
+    cur.execute(sql)
+    return cur.fetchall()
+
+
 def insert_task(conn: Connection, task: str) -> int:
     """Insert task into database"""
     cur = conn.cursor()
