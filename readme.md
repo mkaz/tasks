@@ -10,7 +10,19 @@ Data is stored in a SQLite database.
 
 ## Install
 
-:shrug-emoji:
+During development, here's how I'm running it:
+
+```bash
+# clone repo
+git clone https://github.com/mkaz/task
+
+# install dependencies
+python3 -m pip install appdirs toml
+
+# create symlink
+ln -s ~/bin/t /path/to/clone/task/task/task.py
+```
+
 
 ## Usage
 
