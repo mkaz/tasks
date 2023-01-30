@@ -1,4 +1,4 @@
-# Task
+# Tasks
 
 A simple command-line tool for your task list.
 
@@ -14,20 +14,19 @@ During development, here's how I'm running it:
 
 ```bash
 # clone repo
-git clone https://github.com/mkaz/task
+git clone https://github.com/mkaz/tasks
 
 # install dependencies
-python3 -m pip install appdirs toml
+python3 -m pip install appdirs termcolor
 
 # create symlink
-ln -s ~/bin/t /path/to/clone/task/task/task.py
+ln -s ~/bin/t /path/to/clone/tasks/task/task.py
 ```
-
 
 ## Usage
 
 ```
-USAGE: task [flags] [command] [id] [text]
+USAGE: tasks [flags] [command] [id] [text]
 
 COMMANDS:
   add
@@ -48,23 +47,20 @@ COMMANDS:
 
 ## Configuration
 
-Task uses a SQLite db to store its data.
+Tasks uses a SQLite db to store its data. The program will look in this order for determining what database file to use. Adjust to fit your needs, maybe different databases for differnt projects.
 
-By default it will use your system's default data directory. You can override this default using one of the following options:
+1. If `--taskdb DBFILE` flag on command-line
+2. If `tasks.db` file in current directory
+3. If environment variable `TASKS_DB` is set
+4. Uses your OS data directory
 
-- Option 1: Use --task-db DIR flag on command-line
-- Option 2: Create task.conf in your OS config dir
-- Option 3: Create $HOME/.task.conf
+### Why SQLite?
 
-The task.conf config file uses TOML format and requires "taskdb" set:
-
-```toml
-taskdb='/home/username/Documents/tasks.db'
-```
+SQLite is a common database format available on all platforms and saves to a single file, this makes it portable and easy to reason about. Additionally, SQLite is extrememly stable, the team has committed to supporting the current API and backwards compatibility to 2050.
 
 ### Contributions and License
 
-Task is open source and free to use, modify, and distribute. It is licensed under the <a rel="license" href="https://opensource.org/licenses/MIT">MIT License</a>.
+Tasks is open source and free to use, modify, and distribute. It is licensed under the <a rel="license" href="https://opensource.org/licenses/MIT">MIT License</a>.
 
 All contributions are welcome. Use Github issues to report a bug, or submit a feature request. This is just a side project for me, so I may not respond quickly.
 

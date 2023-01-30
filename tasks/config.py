@@ -1,8 +1,8 @@
 from appdirs import AppDirs
 import argparse
+import os
 from pathlib import Path
 import sys
-import toml
 from typing import Dict
 
 
@@ -25,6 +25,7 @@ def init_args() -> Dict:
         print("task v{}".format(VERSION))
         sys.exit()
 
+    # if not specified on command-line figure it out
     if args["taskdb"] is None:
         args["taskdb"] = get_taskdb_loc()
 
@@ -35,20 +36,21 @@ def init_args() -> Dict:
 
 
 def get_taskdb_loc() -> str:
-    """Figure out where the taskdb file should be"""
+    """Figure out where the taskdb file should be.
+    See README for spec"""
 
-    # System specific directories
-    dirs = AppDirs("Task", "mkaz")
+    # check if tasks.db exists in current dir
+    cur_dir = Path(Path.cwd(), "tasks.db")
+    if cur_dir.is_file():
+        return cur_dir
 
-    # check if task.conf exists
-    config_file = Path(dirs.user_config_dir, "task.conf")
-    if not config_file.is_file():
-        config_file = Path(Path.home(), ".task.conf")
+    # check for env TASKS_DB
+    env_var = os.environ.get("TASKS_DB")
+    if env_var is not None:
+        return env_var
 
-    if config_file.is_file():
-        config_text = config_file.read_text()
-        config = toml.loads(config_text)
-        return config["taskdb"]
+    # Finally use system specific data dir
+    dirs = AppDirs("Tasks", "mkaz")
 
     # No config file, default to data dir
     data_dir = Path(dirs.user_data_dir)
