@@ -22,7 +22,7 @@ def init_args() -> Dict:
     args = vars(parser.parse_args())
 
     if args["version"]:
-        print("task v{}".format(VERSION))
+        print(f"task v{VERSION}")
         sys.exit()
 
     # if not specified on command-line figure it out
