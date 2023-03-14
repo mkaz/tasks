@@ -1,13 +1,14 @@
-from appdirs import AppDirs
 import argparse
+import importlib.metadata
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Dict
 
+from appdirs import AppDirs
 
 cmds = ["add", "del", "do", "edit", "note", "show"]
-VERSION = "2.0.0"
+__version__ = importlib.metadata.version(__package__)
 
 
 def init_args() -> Dict:
@@ -22,7 +23,7 @@ def init_args() -> Dict:
     args = vars(parser.parse_args())
 
     if args["version"]:
-        print(f"task v{VERSION}")
+        print(f"task v{__version__}")
         sys.exit()
 
     # if not specified on command-line figure it out
@@ -35,7 +36,7 @@ def init_args() -> Dict:
     return args
 
 
-def get_taskdb_loc() -> str:
+def get_taskdb_loc() -> Path:
     """Figure out where the taskdb file should be.
     See README for spec"""
 
@@ -47,7 +48,7 @@ def get_taskdb_loc() -> str:
     # check for env TASKS_DB
     env_var = os.environ.get("TASKS_DB")
     if env_var is not None:
-        return env_var
+        return Path(env_var)
 
     # Finally use system specific data dir
     dirs = AppDirs("Tasks", "mkaz")

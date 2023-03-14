@@ -4,15 +4,15 @@ Task
 A simple command-line task list.
 """
 
-from pathlib import Path
 import readline
 import sqlite3
 import sys
+from pathlib import Path
 
 # local
-from config import init_args
-from dbactions import *
-from reports import *
+import tasks.dbactions as db
+import tasks.reports as reports
+from tasks.config import init_args
 
 
 def main():
@@ -28,12 +28,12 @@ def main():
     # if dbfile did not exist will be created
     conn = sqlite3.connect(dbfile)
     if is_new_db:
-        create_schema(conn)
+        db.create_schema(conn)
 
     match args["command"]:
         case "add":
             task = " ".join(args["args"])
-            task_id = insert_task(conn, task)
+            task_id = db.insert_task(conn, task)
             print(f"Created Task #{task_id}")
 
         case "del":
@@ -46,7 +46,7 @@ def main():
                 # check arg is an int
                 try:
                     task_id = int(arg)
-                    task_delete(conn, task_id)
+                    db.task_delete(conn, task_id)
                     print(f"Task #{task_id} deleted.")
                 except ValueError:
                     print(f"> Invalid task id {task_id}")
@@ -62,7 +62,7 @@ def main():
                 # check arg is an int
                 try:
                     task_id = int(arg)
-                    mark_done(conn, task_id)
+                    db.mark_done(conn, task_id)
                     print(f"Task #{task_id} marked done.")
                 except ValueError:
                     print(f"> Invalid task id {task_id}")
@@ -74,20 +74,20 @@ def main():
                 sys.exit(1)
             try:
                 task_id = int(args["args"][0])
-                task = get_task(conn, task_id)
+                task = db.get_task(conn, task_id)
                 new_text = input_prefill(f"Update #{task_id}: ", task[1])
-                task_update(conn, task_id, new_text)
+                db.task_update(conn, task_id, new_text)
             except ValueError:
                 print(f"> Invalid task id {task_id}")
 
         case "show":
             if args["week"]:
-                new = get_tasks_new(conn, days=7)
-                com = get_tasks_com(conn, days=7)
-                show_tasks_week(new, com)
+                new = db.get_tasks_new(conn, days=7)
+                com = db.get_tasks_com(conn, days=7)
+                reports.show_tasks_week(new, com)
             else:
-                tasks = get_tasks(conn)
-                show_tasks(tasks)
+                tasks = db.get_tasks(conn)
+                reports.show_tasks(tasks)
 
         case _:
             print("Not yet implemented")

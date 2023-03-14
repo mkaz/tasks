@@ -10,17 +10,10 @@ Data is stored in a SQLite database.
 
 ## Install
 
-During development, here's how I'm running it:
+Install using pip:
 
 ```bash
-# clone repo
-git clone https://github.com/mkaz/tasks
-
-# install dependencies
-python3 -m pip install appdirs termcolor
-
-# create symlink
-ln -s ~/bin/t /path/to/clone/tasks/task/task.py
+python3 -m pip install git+https://github.com/mkaz/tasks
 ```
 
 ## Usage
@@ -62,6 +55,6 @@ SQLite is a common database format available on all platforms and saves to a sin
 
 Tasks is open source and free to use, modify, and distribute. It is licensed under the <a rel="license" href="https://opensource.org/licenses/MIT">MIT License</a>.
 
-All contributions are welcome. Use Github issues to report a bug, or submit a feature request. This is just a side project for me, so I may not respond quickly.
+This is just a hobby project, if you have any feedback or contributions feel free to use GitHub issues to submit them.
 
 An [mkaz](https://mkaz.blog/) contrivance.

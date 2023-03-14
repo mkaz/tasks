@@ -1,5 +1,5 @@
 from sqlite3 import Connection
-from typing import List
+from typing import List, Optional
 
 
 def create_schema(conn: Connection):
@@ -31,19 +31,27 @@ def get_tasks(conn: Connection) -> List:
 
 def get_tasks_new(conn: Connection, days: int) -> List:
     cur = conn.cursor()
-    sql = f"SELECT * FROM tasks WHERE dt_completed = 0 AND dt_created >= date('now', '-{days} days')"
+    sql = f"""
+        SELECT * FROM tasks
+         WHERE dt_completed = 0
+           AND dt_created >= date('now', '-{days} days')
+    """
     cur.execute(sql)
     return cur.fetchall()
 
 
 def get_tasks_com(conn: Connection, days: int) -> List:
     cur = conn.cursor()
-    sql = f"SELECT * FROM tasks WHERE dt_completed > 0 AND dt_created >= date('now', '-{days} days')"
+    sql = f"""
+        SELECT * FROM tasks
+         WHERE dt_completed > 0
+           AND dt_created >= date('now', '-{days} days')
+    """
     cur.execute(sql)
     return cur.fetchall()
 
 
-def insert_task(conn: Connection, task: str) -> int:
+def insert_task(conn: Connection, task: str) -> Optional[int]:
     """Insert task into database"""
     cur = conn.cursor()
     sql = "INSERT INTO tasks (task) VALUES (?)"
@@ -57,7 +65,7 @@ def mark_done(conn: Connection, task_id: int):
     """Mark task id done"""
     cur = conn.cursor()
     sql = """
-        UPDATE tasks 
+        UPDATE tasks
            SET dt_completed = CURRENT_TIMESTAMP
          WHERE id = ?
     """
@@ -69,7 +77,7 @@ def task_update(conn: Connection, task_id: int, task: str):
     """Update task with new text"""
     cur = conn.cursor()
     sql = """
-        UPDATE tasks 
+        UPDATE tasks
            SET task = ?
          WHERE id = ?
     """
@@ -81,7 +89,7 @@ def task_delete(conn: Connection, task_id: int):
     """Mark task id done"""
     cur = conn.cursor()
     sql = """
-        DELETE FROM tasks 
+        DELETE FROM tasks
          WHERE id = ?
     """
     cur.execute(sql, [task_id])
