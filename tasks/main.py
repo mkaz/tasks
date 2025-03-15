@@ -100,6 +100,24 @@ def input_prefill(prompt: str, text: str) -> str:
     return result
 
 
+def handle_priority_change(conn: sqlite3.Connection, args: List[str], increase: bool) -> None:
+    """Handle priority change commands (++ or --)."""
+    if not args:
+        print("> No task id specified.")
+        print("> Use: task ++ ID [ID] [ID] or task -- ID [ID] [ID]")
+        sys.exit(1)
+
+    for arg in args:
+        task_id = validate_task_id(arg)
+        if task_id is not None:
+            if increase:
+                db.increase_priority(conn, task_id)
+                print(f"Task #{task_id} priority increased.")
+            else:
+                db.decrease_priority(conn, task_id)
+                print(f"Task #{task_id} priority decreased.")
+
+
 def main() -> None:
     """Main entry point for the task application."""
     args = init_args()
@@ -128,6 +146,10 @@ def main() -> None:
             handle_edit(conn, args["args"])
         elif command == "show":
             handle_show(conn, args["week"])
+        elif command == "^":
+            handle_priority_change(conn, args["args"], True)
+        elif command == "v":
+            handle_priority_change(conn, args["args"], False)
         else:
             print("Not yet implemented")
 

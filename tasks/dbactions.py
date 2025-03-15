@@ -11,11 +11,11 @@ def create_schema(conn: Connection):
             id INTEGER PRIMARY KEY,
             task TEXT NOT NULL,
             dt_completed DATETIME DEFAULT 0,
-            dt_created DATETIME DEFAULT CURRENT_TIMESTAMP
+            dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+            priority INTEGER DEFAULT 2
         )
         """
     )
-
 
 def get_task(conn: Connection, task_id: int) -> List:
     cur = conn.cursor()
@@ -25,7 +25,7 @@ def get_task(conn: Connection, task_id: int) -> List:
 
 def get_tasks(conn: Connection) -> List:
     cur = conn.cursor()
-    cur.execute("SELECT * FROM tasks WHERE dt_completed = 0")
+    cur.execute("SELECT * FROM tasks WHERE dt_completed = 0 ORDER BY priority, id")
     return cur.fetchall()
 
 
@@ -35,6 +35,7 @@ def get_tasks_new(conn: Connection, days: int) -> List:
         SELECT * FROM tasks
          WHERE dt_completed = 0
            AND dt_created >= date('now', '-{days} days')
+         ORDER BY priority, id
     """
     cur.execute(sql)
     return cur.fetchall()
@@ -90,6 +91,30 @@ def task_delete(conn: Connection, task_id: int):
     cur = conn.cursor()
     sql = """
         DELETE FROM tasks
+         WHERE id = ?
+    """
+    cur.execute(sql, [task_id])
+    conn.commit()
+
+
+def increase_priority(conn: Connection, task_id: int):
+    """Increase task priority (decrease number)"""
+    cur = conn.cursor()
+    sql = """
+        UPDATE tasks
+           SET priority = MAX(0, priority - 1)
+         WHERE id = ?
+    """
+    cur.execute(sql, [task_id])
+    conn.commit()
+
+
+def decrease_priority(conn: Connection, task_id: int):
+    """Decrease task priority (increase number)"""
+    cur = conn.cursor()
+    sql = """
+        UPDATE tasks
+           SET priority = MIN(4, priority + 1)
          WHERE id = ?
     """
     cur.execute(sql, [task_id])
