@@ -90,17 +90,25 @@ def handle_show(conn: sqlite3.Connection, week: bool) -> None:
 
 def input_prefill(prompt: str, text: str) -> str:
     """Prefill input with existing text."""
+
     def hook():
         readline.insert_text(text)
         readline.redisplay()
 
     readline.set_pre_input_hook(hook)
-    result = input(prompt)
-    readline.set_pre_input_hook()
-    return result
+    try:
+        result = input(prompt)
+        readline.set_pre_input_hook()
+        return result
+    except (KeyboardInterrupt, EOFError):
+        print("\nCancelled")
+        readline.set_pre_input_hook()
+        sys.exit(1)
 
 
-def handle_priority_change(conn: sqlite3.Connection, args: List[str], increase: bool) -> None:
+def handle_priority_change(
+    conn: sqlite3.Connection, args: List[str], increase: bool
+) -> None:
     """Handle priority change commands (++ or --)."""
     if not args:
         print("> No task id specified.")
