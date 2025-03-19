@@ -8,6 +8,7 @@ import readline
 import sqlite3
 import sys
 from pathlib import Path
+from prompt_toolkit import prompt
 from typing import List, Optional
 
 # local
@@ -88,21 +89,13 @@ def handle_show(conn: sqlite3.Connection, week: bool) -> None:
         reports.show_tasks(tasks)
 
 
-def input_prefill(prompt: str, text: str) -> str:
+def input_prefill(prompt_str: str, text: str) -> str:
     """Prefill input with existing text."""
-
-    def hook():
-        readline.insert_text(text)
-        readline.redisplay()
-
-    readline.set_pre_input_hook(hook)
     try:
-        result = input(prompt)
-        readline.set_pre_input_hook()
+        result = prompt(prompt_str, default=text, auto_suggest=None)
         return result
     except (KeyboardInterrupt, EOFError):
         print("\nCancelled")
-        readline.set_pre_input_hook()
         sys.exit(1)
 
 
