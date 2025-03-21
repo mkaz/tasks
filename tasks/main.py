@@ -123,7 +123,7 @@ def handle_mode(conn: sqlite3.Connection, args: List[str]) -> None:
     """Handle the mode command to set task mode."""
     if len(args) != 2:
         print("> mode command requires task id and mode")
-        print("> Use: task mode ID [Now|Develop|Tinker]")
+        print("> Use: task mode ID [A|B|C]")
         sys.exit(1)
 
     task_id = validate_task_id(args[0])
@@ -154,6 +154,9 @@ def main() -> None:
         conn = sqlite3.connect(dbfile)
         if is_new_db:
             db.create_schema(conn)
+        else:
+            # Migrate existing database if needed
+            db.migrate_schema(conn)
 
         command = args["command"]
         if command == "add":

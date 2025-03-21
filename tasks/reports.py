@@ -18,33 +18,42 @@ def get_priority_style(priority: int) -> str:
 def show_tasks(tasks: List):
     console = Console()
 
-    # Create a table for each mode
-    tables = {
-        'A': Table(title="Now", show_header=False, padding=(0, 1)),
-        'B': Table(title="Develop", show_header=False, padding=(0, 1)),
-        'C': Table(title="Tinker", show_header=False, padding=(0, 1))
-    }
+    # Create a single table with three columns for modes
+    table = Table(show_header=True, padding=(0, 1), expand=True)
+    table.add_column("A. Now", justify="left", ratio=1)
+    table.add_column("B. Develop", justify="left", ratio=1)
+    table.add_column("C. Tinker", justify="left", ratio=1)
 
-    # Configure columns for each table
-    for table in tables.values():
-        table.add_column("ID", justify="right", width=4)
-        table.add_column("Task", width=42)
-        table.add_column("Priority", justify="left")
+    # Group tasks by mode
+    now_tasks = []
+    develop_tasks = []
+    tinker_tasks = []
 
-    # Sort tasks into their respective tables
     for task in tasks:
-        mode = task[5] if len(task) > 5 else 'A'
+        mode = task[5] if len(task) > 5 else 'A'  # Default to 'Now' for backward compatibility
         priority_style = get_priority_style(task[4])
-        tables[mode].add_row(
-            str(task[0]),
-            f"[{priority_style}]{task[1]}[/{priority_style}]",
-            f"[{priority_style}]P{task[4]}[/{priority_style}]"
-        )
+        formatted_task = f"{task[0]:>3} [{priority_style}]{task[1]} (P{task[4]})[/{priority_style}]"
 
-    # Print all tables
-    for table in tables.values():
-        console.print(table)
-        console.print()  # Add spacing between tables
+        if mode == 'A':
+            now_tasks.append(formatted_task)
+        elif mode == 'B':
+            develop_tasks.append(formatted_task)
+        elif mode == 'C':
+            tinker_tasks.append(formatted_task)
+
+    # Find the maximum length to determine number of rows
+    max_length = max(len(now_tasks), len(develop_tasks), len(tinker_tasks))
+
+    # Pad shorter lists with empty strings to match max_length
+    now_tasks.extend([''] * (max_length - len(now_tasks)))
+    develop_tasks.extend([''] * (max_length - len(develop_tasks)))
+    tinker_tasks.extend([''] * (max_length - len(tinker_tasks)))
+
+    # Add rows to table
+    for i in range(max_length):
+        table.add_row(now_tasks[i], develop_tasks[i], tinker_tasks[i])
+
+    console.print(table)
 
 
 def show_tasks_week(new_tasks: List, com_tasks: List):
@@ -87,3 +96,4 @@ def show_tasks_week(new_tasks: List, com_tasks: List):
         )
 
     console.print(com_table)
+

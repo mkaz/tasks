@@ -124,10 +124,9 @@ def decrease_priority(conn: Connection, task_id: int):
 
 def set_task_mode(conn: Connection, task_id: int, mode: str):
     """Set task mode to one of: Now, Develop, Tinker"""
-    if mode not in ['Now', 'Develop', 'Tinker']:
-        raise ValueError("Mode must be one of: Now, Develop, Tinker")
-
     cur = conn.cursor()
+    # LIMIT clause is not needed in UPDATE statement since WHERE id = ?
+    # already ensures we only update one row (id is primary key)
     sql = """
         UPDATE tasks
            SET mode = ?
@@ -147,3 +146,21 @@ def get_tasks_by_mode(conn: Connection, mode: str) -> List:
     """
     cur.execute(sql, [mode])
     return cur.fetchall()
+
+def migrate_schema(conn: Connection) -> None:
+    """Migrate database schema to add mode column"""
+    cur = conn.cursor()
+
+    # Check if mode column exists
+    cur.execute("PRAGMA table_info(tasks)")
+    columns = cur.fetchall()
+    has_mode = any(col[1] == 'mode' for col in columns)
+
+    if not has_mode:
+        # Add mode column with default value
+        cur.execute("""
+            ALTER TABLE tasks
+            ADD COLUMN mode TEXT DEFAULT 'A'
+            CHECK(mode IN ('A', 'B', 'C'))
+        """)
+        conn.commit()
