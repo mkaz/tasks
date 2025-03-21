@@ -12,7 +12,8 @@ def create_schema(conn: Connection):
             task TEXT NOT NULL,
             dt_completed DATETIME DEFAULT 0,
             dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
-            priority INTEGER DEFAULT 2
+            priority INTEGER DEFAULT 2,
+            mode TEXT DEFAULT 'A' CHECK(mode IN ('A', 'B', 'C'))
         )
         """
     )
@@ -119,3 +120,30 @@ def decrease_priority(conn: Connection, task_id: int):
     """
     cur.execute(sql, [task_id])
     conn.commit()
+
+
+def set_task_mode(conn: Connection, task_id: int, mode: str):
+    """Set task mode to one of: Now, Develop, Tinker"""
+    if mode not in ['Now', 'Develop', 'Tinker']:
+        raise ValueError("Mode must be one of: Now, Develop, Tinker")
+
+    cur = conn.cursor()
+    sql = """
+        UPDATE tasks
+           SET mode = ?
+         WHERE id = ?
+    """
+    cur.execute(sql, [mode, task_id])
+    conn.commit()
+
+def get_tasks_by_mode(conn: Connection, mode: str) -> List:
+    """Get all tasks for a specific mode"""
+    cur = conn.cursor()
+    sql = """
+        SELECT * FROM tasks
+        WHERE dt_completed = 0
+        AND mode = ?
+        ORDER BY priority, id
+    """
+    cur.execute(sql, [mode])
+    return cur.fetchall()

@@ -105,7 +105,7 @@ def handle_priority_change(
     """Handle priority change commands (++ or --)."""
     if not args:
         print("> No task id specified.")
-        print("> Use: task ++ ID [ID] [ID] or task -- ID [ID] [ID]")
+        print("> Use: task ^ ID [ID] [ID] or task v ID [ID] [ID]")
         sys.exit(1)
 
     for arg in args:
@@ -117,6 +117,25 @@ def handle_priority_change(
             else:
                 db.decrease_priority(conn, task_id)
                 print(f"Task #{task_id} priority decreased.")
+
+
+def handle_mode(conn: sqlite3.Connection, args: List[str]) -> None:
+    """Handle the mode command to set task mode."""
+    if len(args) != 2:
+        print("> mode command requires task id and mode")
+        print("> Use: task mode ID [Now|Develop|Tinker]")
+        sys.exit(1)
+
+    task_id = validate_task_id(args[0])
+    mode = args[1]
+
+    if task_id is not None:
+        try:
+            db.set_task_mode(conn, task_id, mode)
+            print(f"Task #{task_id} mode set to {mode}")
+        except ValueError as e:
+            print(f"> {e}")
+            sys.exit(1)
 
 
 def main() -> None:
@@ -151,6 +170,8 @@ def main() -> None:
             handle_priority_change(conn, args["args"], True)
         elif command == "v":
             handle_priority_change(conn, args["args"], False)
+        elif command == "mode":
+            handle_mode(conn, args["args"])
         else:
             print("Not yet implemented")
 

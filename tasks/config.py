@@ -7,7 +7,7 @@ from typing import Dict
 
 from appdirs import AppDirs
 
-cmds = ["add", "del", "do", "edit", "note", "show", "^", "v"]
+cmds = ["add", "del", "do", "edit", "note", "show", "^", "v", "mode"]
 __version__ = importlib.metadata.version(__package__)
 
 

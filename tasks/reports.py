@@ -17,20 +17,34 @@ def get_priority_style(priority: int) -> str:
 
 def show_tasks(tasks: List):
     console = Console()
-    table = Table(show_header=False, padding=(0, 1))
-    table.add_column("ID", justify="right", width=4)
-    table.add_column("Task", width=42)
-    table.add_column("Priority", justify="left")
 
+    # Create a table for each mode
+    tables = {
+        'A': Table(title="Now", show_header=False, padding=(0, 1)),
+        'B': Table(title="Develop", show_header=False, padding=(0, 1)),
+        'C': Table(title="Tinker", show_header=False, padding=(0, 1))
+    }
+
+    # Configure columns for each table
+    for table in tables.values():
+        table.add_column("ID", justify="right", width=4)
+        table.add_column("Task", width=42)
+        table.add_column("Priority", justify="left")
+
+    # Sort tasks into their respective tables
     for task in tasks:
+        mode = task[5] if len(task) > 5 else 'A'
         priority_style = get_priority_style(task[4])
-        table.add_row(
+        tables[mode].add_row(
             str(task[0]),
             f"[{priority_style}]{task[1]}[/{priority_style}]",
             f"[{priority_style}]P{task[4]}[/{priority_style}]"
         )
 
-    console.print(table)
+    # Print all tables
+    for table in tables.values():
+        console.print(table)
+        console.print()  # Add spacing between tables
 
 
 def show_tasks_week(new_tasks: List, com_tasks: List):
