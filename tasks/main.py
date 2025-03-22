@@ -4,7 +4,6 @@ Task
 A simple command-line task list.
 """
 
-import readline
 import sqlite3
 import sys
 from pathlib import Path
