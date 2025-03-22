@@ -2,3 +2,4 @@
 tasks.db
 .vscode
 .aider*
+uv.lock

@@ -4,18 +4,9 @@
 default:
     @just --list
 
-# Install project dependencies
-install:
-    pip install -e ".[dev]"
-    pre-commit install
-
 # Run pre-commit checks
 lint:
-    pre-commit run --all-files
-
-# Run tests
-test:
-    pytest
+    ruff check tasks/
 
 # Clean Python artifacts
 clean:
@@ -26,10 +17,12 @@ clean:
     find . -type f -name "*.pyc" -delete
 
 # Build the project
-build:
-    pip install build
-    python -m build
+install:
+    uv sync
+
+build: install
+    uv build
 
 # Run the CLI application
 run *args:
-    python -m tasks.main {{args}}
+    uv run tasks/main.py {{args}}
