@@ -1,5 +1,12 @@
+# Dev files
 .DS_Store
-tasks.db
 .vscode
 .aider*
+
+# Python
 uv.lock
+.ruff_cache
+.venv
+
+# Data
+tasks.db
