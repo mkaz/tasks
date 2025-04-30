@@ -51,6 +51,16 @@ def get_tasks_com(conn: Connection, days: int) -> List:
     cur.execute(sql)
     return cur.fetchall()
 
+def get_tasks_by_mode(conn: Connection, mode: str) -> List:
+    cur = conn.cursor()
+    sql = """
+        SELECT * FROM tasks
+        WHERE dt_completed = 0
+        AND mode = ?
+    """
+    cur.execute(sql, [mode])
+    return cur.fetchall()
+
 
 def insert_task(conn: Connection, task: str) -> Optional[int]:
     """Insert task into database"""

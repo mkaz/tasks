@@ -59,7 +59,7 @@ def init_args() -> Dict:
     # --- Show command ---
     parser_show = subparsers.add_parser("show", help=COMMANDS["show"])
     parser_show.add_argument("-w", "--week", action="store_true", help="Show tasks added or completed in the last week.")
-    # Add other show filters later if needed (e.g., search term)
+    parser_show.add_argument("--now", action="store_true", help="Show only tasks in mode A.")
 
     # --- Priority Up command ---
     parser_prio_up = subparsers.add_parser("^", help=COMMANDS["^"])

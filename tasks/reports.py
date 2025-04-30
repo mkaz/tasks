@@ -20,9 +20,9 @@ def show_tasks(tasks: List):
 
     # Create a single table with three columns for modes
     table = Table(show_header=True, padding=(0, 1), expand=True)
-    table.add_column("A. Now", justify="left", ratio=1)
-    table.add_column("B. Develop", justify="left", ratio=1)
-    table.add_column("C. Tinker", justify="left", ratio=1)
+    table.add_column(" A. Now", justify="left", ratio=1)
+    table.add_column(" B. Develop", justify="left", ratio=1)
+    table.add_column(" C. Tinker", justify="left", ratio=1)
 
     # Group tasks by mode
     now_tasks = []
@@ -32,7 +32,7 @@ def show_tasks(tasks: List):
     for task in tasks:
         mode = task[5] if len(task) > 5 else 'A'  # Default to 'Now' for backward compatibility
         priority_style = get_priority_style(task[4])
-        formatted_task = f"{task[0]:>3} [{priority_style}]{task[1]} (P{task[4]})[/{priority_style}]"
+        formatted_task = f"{task[0]:>3} [{priority_style}]{task[1]}[/{priority_style}]"
 
         if mode == 'A':
             now_tasks.append(formatted_task)
@@ -56,44 +56,38 @@ def show_tasks(tasks: List):
     console.print(table)
 
 
+def show_tasks_list(tasks: List):
+    console = Console()
+    console.print(make_tasks_table(tasks))
+
+
 def show_tasks_week(new_tasks: List, com_tasks: List):
     console = Console()
-    print("")
+    print("-------------")
     print("[bold magenta]WEEKLY REPORT[/bold magenta]")
     print("-------------\n")
 
     print("[yellow]New this week[/yellow]")
-    new_table = Table(show_header=False, padding=(0, 1))
-    new_table.add_column("ID", justify="right", width=4)
-    new_table.add_column("Task", width=42)
-    new_table.add_column("Priority", justify="left")
+    console.print(make_tasks_table(new_tasks))
 
-    for task in new_tasks:
+    print("\n")
+    print("[green]Completed this week[/green]")
+    console.print(make_tasks_table(com_tasks))
+
+
+# Helper function to make a table of tasks
+def make_tasks_table(tasks: List):
+    table = Table(show_header=False, padding=(0, 1))
+    table.add_column("ID", justify="right", width=4)
+    table.add_column("Task", width=42)
+    table.add_column("Priority", justify="left")
+
+    for task in tasks:
         priority_style = get_priority_style(task[4])
-        new_table.add_row(
+        table.add_row(
             str(task[0]),
             f"[{priority_style}]{task[1]}[/{priority_style}]",
             f"[{priority_style}]P{task[4]}[/{priority_style}]"
         )
 
-    console.print(new_table)
-
-    print("\n")
-    print("[green]Completed this week[/green]")
-    com_table = Table(show_header=False, padding=(0, 1))
-    com_table.add_column("ID", justify="right", width=4)
-    com_table.add_column("Task", width=42)
-    com_table.add_column("Priority", justify="left")
-    com_table.add_column("Status", justify="left")
-
-    for task in com_tasks:
-        priority_style = get_priority_style(task[4])
-        com_table.add_row(
-            str(task[0]),
-            f"[{priority_style}]{task[1]}[/{priority_style}]",
-            f"[{priority_style}]P{task[4]}[/{priority_style}]",
-            "✅"
-        )
-
-    console.print(com_table)
-
+    return table

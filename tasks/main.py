@@ -16,6 +16,56 @@ import tasks.reports as reports
 from tasks.config import init_args
 
 
+
+def main() -> None:
+    """Main entry point for the task application."""
+    args = init_args()
+
+    dbfile = Path(args["taskdb"])
+    if args["info"]:
+        print(f"Using tasks.db {dbfile}")
+
+    # check if taskdb exists
+    is_new_db = not dbfile.is_file()
+
+    try:
+        # if dbfile did not exist will be created
+        conn = sqlite3.connect(dbfile)
+        if is_new_db:
+            db.create_schema(conn)
+        else:
+            # Migrate existing database if needed
+            db.migrate_schema(conn)
+
+        command = args["command"]
+        if command == "add":
+            handle_add(conn, args["task_description"])
+        elif command == "del":
+            handle_delete(conn, args["task_ids"])
+        elif command == "do":
+            handle_do(conn, args["task_ids"])
+        elif command == "edit":
+            handle_edit(conn, args["task_id"])
+        elif command == "show":
+            handle_show(conn, args["week"], args["now"])
+        elif command == "^":
+            handle_priority_change(conn, args["task_ids"], True)
+        elif command == "v":
+            handle_priority_change(conn, args["task_ids"], False)
+        elif command == "mode":
+            handle_mode(conn, args["task_id"], args["mode_value"])
+        elif command is None:
+             handle_show(conn, args["week"], args["now"])
+        else:
+             print(f"Unknown or unimplemented command: {command}")
+
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        sys.exit(1)
+    finally:
+        conn.close()
+
+
 def handle_add(conn: sqlite3.Connection, task_description: str) -> None:
     """Handle the add command."""
     task_id = db.insert_task(conn, task_description)
@@ -49,12 +99,15 @@ def handle_edit(conn: sqlite3.Connection, task_id: int) -> None:
         print(f"> Task #{task_id} not found")
 
 
-def handle_show(conn: sqlite3.Connection, week: bool) -> None:
+def handle_show(conn: sqlite3.Connection, week: bool, now: bool) -> None:
     """Handle the show command."""
     if week:
         new = db.get_tasks_new(conn, days=7)
         com = db.get_tasks_com(conn, days=7)
         reports.show_tasks_week(new, com)
+    elif now:
+        tasks = db.get_tasks_by_mode(conn, mode='A')
+        reports.show_tasks_list(tasks)
     else:
         tasks = db.get_tasks(conn)
         reports.show_tasks(tasks)
@@ -91,54 +144,6 @@ def handle_mode(conn: sqlite3.Connection, task_id: int, mode: str) -> None:
     except ValueError as e:
         print(f"> {e}")
 
-
-def main() -> None:
-    """Main entry point for the task application."""
-    args = init_args()
-
-    dbfile = Path(args["taskdb"])
-    if args["info"]:
-        print(f"Using tasks.db {dbfile}")
-
-    # check if taskdb exists
-    is_new_db = not dbfile.is_file()
-
-    try:
-        # if dbfile did not exist will be created
-        conn = sqlite3.connect(dbfile)
-        if is_new_db:
-            db.create_schema(conn)
-        else:
-            # Migrate existing database if needed
-            db.migrate_schema(conn)
-
-        command = args["command"]
-        if command == "add":
-            handle_add(conn, args["task_description"])
-        elif command == "del":
-            handle_delete(conn, args["task_ids"])
-        elif command == "do":
-            handle_do(conn, args["task_ids"])
-        elif command == "edit":
-            handle_edit(conn, args["task_id"])
-        elif command == "show":
-            handle_show(conn, args["week"])
-        elif command == "^":
-            handle_priority_change(conn, args["task_ids"], True)
-        elif command == "v":
-            handle_priority_change(conn, args["task_ids"], False)
-        elif command == "mode":
-            handle_mode(conn, args["task_id"], args["mode_value"])
-        elif command is None:
-             handle_show(conn, args["week"])
-        else:
-             print(f"Unknown or unimplemented command: {command}")
-
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-        sys.exit(1)
-    finally:
-        conn.close()
 
 
 if __name__ == "__main__":
