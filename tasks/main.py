@@ -16,65 +16,37 @@ import tasks.reports as reports
 from tasks.config import init_args
 
 
-def validate_task_id(task_id: str) -> Optional[int]:
-    """Validate and convert task ID string to integer."""
-    try:
-        return int(task_id)
-    except ValueError:
-        print(f"> Invalid task id {task_id}")
-        return None
-
-
-def handle_add(conn: sqlite3.Connection, args: List[str]) -> None:
+def handle_add(conn: sqlite3.Connection, task_description: str) -> None:
     """Handle the add command."""
-    task = " ".join(args)
-    task_id = db.insert_task(conn, task)
+    task_id = db.insert_task(conn, task_description)
     print(f"Created Task #{task_id}")
 
 
-def handle_delete(conn: sqlite3.Connection, args: List[str]) -> None:
+def handle_delete(conn: sqlite3.Connection, task_ids: List[int]) -> None:
     """Handle the delete command."""
-    if not args:
-        print("> No task id specified.")
-        print("> Use: task del ID [ID] [ID]")
-        sys.exit(1)
-
-    for arg in args:
-        task_id = validate_task_id(arg)
-        if task_id is not None:
-            db.task_delete(conn, task_id)
-            print(f"Task #{task_id} deleted.")
+    for task_id in task_ids:
+        db.task_delete(conn, task_id)
+        print(f"Task #{task_id} deleted.")
 
 
-def handle_do(conn: sqlite3.Connection, args: List[str]) -> None:
+def handle_do(conn: sqlite3.Connection, task_ids: List[int]) -> None:
     """Handle the do command."""
-    if not args:
-        print("> No task id specified.")
-        print("> Use: task do ID [ID] [ID]")
-        sys.exit(1)
-
-    for arg in args:
-        task_id = validate_task_id(arg)
-        if task_id is not None:
-            db.mark_done(conn, task_id)
-            print(f"Task #{task_id} marked done.")
+    for task_id in task_ids:
+        db.mark_done(conn, task_id)
+        print(f"Task #{task_id} marked done.")
 
 
-def handle_edit(conn: sqlite3.Connection, args: List[str]) -> None:
+def handle_edit(conn: sqlite3.Connection, task_id: int) -> None:
     """Handle the edit command."""
-    if len(args) != 1:
-        print("> edit command takes a single task id")
-        print("> Use: task edit ID")
-        sys.exit(1)
-
-    task_id = validate_task_id(args[0])
-    if task_id is not None:
-        task = db.get_task(conn, task_id)
-        if task:
-            new_text = input_prefill(f"Update #{task_id}: ", task[1])
+    task = db.get_task(conn, task_id)
+    if task:
+        new_text = input_prefill(f"Update #{task_id}: ", task[1])
+        if new_text:
             db.task_update(conn, task_id, new_text)
         else:
-            print(f"> Task #{task_id} not found")
+            print("Edit cancelled.")
+    else:
+        print(f"> Task #{task_id} not found")
 
 
 def handle_show(conn: sqlite3.Connection, week: bool) -> None:
@@ -99,42 +71,25 @@ def input_prefill(prompt_str: str, text: str) -> str:
 
 
 def handle_priority_change(
-    conn: sqlite3.Connection, args: List[str], increase: bool
+    conn: sqlite3.Connection, task_ids: List[int], increase: bool
 ) -> None:
-    """Handle priority change commands (++ or --)."""
-    if not args:
-        print("> No task id specified.")
-        print("> Use: task ^ ID [ID] [ID] or task v ID [ID] [ID]")
-        sys.exit(1)
-
-    for arg in args:
-        task_id = validate_task_id(arg)
-        if task_id is not None:
-            if increase:
-                db.increase_priority(conn, task_id)
-                print(f"Task #{task_id} priority increased.")
-            else:
-                db.decrease_priority(conn, task_id)
-                print(f"Task #{task_id} priority decreased.")
+    """Handle priority change commands (^ or v)."""
+    for task_id in task_ids:
+        if increase:
+            db.increase_priority(conn, task_id)
+            print(f"Task #{task_id} priority increased.")
+        else:
+            db.decrease_priority(conn, task_id)
+            print(f"Task #{task_id} priority decreased.")
 
 
-def handle_mode(conn: sqlite3.Connection, args: List[str]) -> None:
+def handle_mode(conn: sqlite3.Connection, task_id: int, mode: str) -> None:
     """Handle the mode command to set task mode."""
-    if len(args) != 2:
-        print("> mode command requires task id and mode")
-        print("> Use: task mode ID [A|B|C]")
-        sys.exit(1)
-
-    task_id = validate_task_id(args[0])
-    mode = args[1]
-
-    if task_id is not None:
-        try:
-            db.set_task_mode(conn, task_id, mode)
-            print(f"Task #{task_id} mode set to {mode}")
-        except ValueError as e:
-            print(f"> {e}")
-            sys.exit(1)
+    try:
+        db.set_task_mode(conn, task_id, mode)
+        print(f"Task #{task_id} mode set to {mode}")
+    except ValueError as e:
+        print(f"> {e}")
 
 
 def main() -> None:
@@ -159,23 +114,25 @@ def main() -> None:
 
         command = args["command"]
         if command == "add":
-            handle_add(conn, args["args"])
+            handle_add(conn, args["task_description"])
         elif command == "del":
-            handle_delete(conn, args["args"])
+            handle_delete(conn, args["task_ids"])
         elif command == "do":
-            handle_do(conn, args["args"])
+            handle_do(conn, args["task_ids"])
         elif command == "edit":
-            handle_edit(conn, args["args"])
+            handle_edit(conn, args["task_id"])
         elif command == "show":
             handle_show(conn, args["week"])
         elif command == "^":
-            handle_priority_change(conn, args["args"], True)
+            handle_priority_change(conn, args["task_ids"], True)
         elif command == "v":
-            handle_priority_change(conn, args["args"], False)
+            handle_priority_change(conn, args["task_ids"], False)
         elif command == "mode":
-            handle_mode(conn, args["args"])
+            handle_mode(conn, args["task_id"], args["mode_value"])
+        elif command is None:
+             handle_show(conn, args["week"])
         else:
-            print("Not yet implemented")
+             print(f"Unknown or unimplemented command: {command}")
 
     except sqlite3.Error as e:
         print(f"Database error: {e}")

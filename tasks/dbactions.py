@@ -46,8 +46,7 @@ def get_tasks_com(conn: Connection, days: int) -> List:
     cur = conn.cursor()
     sql = f"""
         SELECT * FROM tasks
-         WHERE dt_completed > 0
-           AND dt_created >= date('now', '-{days} days')
+         WHERE dt_completed >= date('now', '-{days} days')
     """
     cur.execute(sql)
     return cur.fetchall()
