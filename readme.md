@@ -32,6 +32,8 @@ COMMANDS:
 	  Show task details, [id] ... at least one required
   edit
 	  Open task in editor, [id] required
+  open
+    Open URL for task, [id] required
   delete
 	  Delete task, [id] ... at least one required
   report
