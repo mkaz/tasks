@@ -1,5 +1,4 @@
-from sqlite3 import Connection
-import sqlite3
+from sqlite3 import Connection, Error
 from typing import List, Optional
 
 
@@ -14,7 +13,7 @@ def create_schema(conn: Connection):
         """
     )
     # Initialize schema version if not already set
-    cur.execute("INSERT OR IGNORE INTO schema_version (version) VALUES (1)")
+    cur.execute("INSERT OR IGNORE INTO schema_version (version) VALUES (2)")
 
     cur.execute(
         """
@@ -40,7 +39,7 @@ def get_schema_version(conn: Connection) -> int:
         result = cur.fetchone()
         if result and result[0] is not None:
             return result[0]
-    except sqlite3.Error:  # Catches all SQLite-related errors
+    except Error:  # Catches all SQLite-related errors
         pass
     return 0
 
@@ -78,6 +77,7 @@ def get_tasks_com(conn: Connection, days: int) -> List:
     cur.execute(sql)
     return cur.fetchall()
 
+
 def get_tasks_by_mode(conn: Connection, mode: str) -> List:
     cur = conn.cursor()
     sql = """
@@ -111,7 +111,9 @@ def mark_done(conn: Connection, task_id: int):
     conn.commit()
 
 
-def task_update(conn: Connection, task_id: int, task_text: str, url: Optional[str] = None):
+def task_update(
+    conn: Connection, task_id: int, task_text: str, url: Optional[str] = None
+):
     """Update task with new text and optionally a new URL"""
     cur = conn.cursor()
     fields_to_update = {"task": task_text}
@@ -178,6 +180,7 @@ def set_task_mode(conn: Connection, task_id: int, mode: str):
     cur.execute(sql, [mode, task_id])
     conn.commit()
 
+
 def get_tasks_by_mode(conn: Connection, mode: str) -> List:
     """Get all tasks for a specific mode"""
     cur = conn.cursor()
@@ -189,6 +192,7 @@ def get_tasks_by_mode(conn: Connection, mode: str) -> List:
     """
     cur.execute(sql, [mode])
     return cur.fetchall()
+
 
 def migrate_schema(conn: Connection) -> None:
     """Migrate database schema to add mode column and url column."""
@@ -202,7 +206,7 @@ def migrate_schema(conn: Connection) -> None:
         # Check if mode column exists
         cur.execute("PRAGMA table_info(tasks)")
         columns = cur.fetchall()
-        has_mode = any(col[1] == 'mode' for col in columns)
+        has_mode = any(col[1] == "mode" for col in columns)
 
         if not has_mode:
             # Add mode column with default value
@@ -211,7 +215,7 @@ def migrate_schema(conn: Connection) -> None:
                 ADD COLUMN mode TEXT DEFAULT 'A'
                 CHECK(mode IN ('A', 'B', 'C'))
             """)
-            conn.commit() # Commit after adding mode
+            conn.commit()  # Commit after adding mode
 
         # At this point, 'mode' column exists or was just added.
         # Now introduce schema_version table and set version to 1.
@@ -223,21 +227,21 @@ def migrate_schema(conn: Connection) -> None:
             """
         )
         cur.execute("INSERT OR REPLACE INTO schema_version (version) VALUES (1)")
-        conn.commit() # Commit after setting version to 1
-        current_version = 1 # Update current_version for subsequent migrations
+        conn.commit()  # Commit after setting version to 1
+        current_version = 1  # Update current_version for subsequent migrations
 
     if current_version < 2:
         # Migration for adding the 'url' column
         cur.execute("PRAGMA table_info(tasks)")
         columns = cur.fetchall()
-        has_url = any(col[1] == 'url' for col in columns)
+        has_url = any(col[1] == "url" for col in columns)
 
         if not has_url:
             cur.execute("""
                 ALTER TABLE tasks
                 ADD COLUMN url TEXT
             """)
-            conn.commit() # Commit after adding url
+            conn.commit()  # Commit after adding url
 
         # Update schema version to 2
         cur.execute("UPDATE schema_version SET version = 2")
