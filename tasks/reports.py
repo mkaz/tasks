@@ -61,6 +61,18 @@ def show_tasks_list(tasks: List):
     console.print(make_tasks_table(tasks))
 
 
+def show_task_details(task):
+    console = Console()
+    print(f"Task ID  : {task['id']}")
+    print(f"Task     : {task['task']}")
+    print(f"Priority : {task['priority']}")
+    print(f"Mode     : {task['mode']}")
+    print(f"URL      : {task['url']}")
+    print(f"Completed: {task['dt_completed']}")
+    print(f"Created  : {task['dt_created']}")
+
+
+
 def show_tasks_week(new_tasks: List, com_tasks: List):
     console = Console()
     print("-------------")

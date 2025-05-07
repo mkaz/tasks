@@ -18,7 +18,8 @@ COMMANDS = {
     "show": "Show tasks (default command). Filter by status or search term.",
     "^": "Increase priority of one or more tasks by ID.",
     "v": "Decrease priority of one or more tasks by ID.",
-    "mode": "Set the mode (A, B, C) for a task."
+    "mode": "Set the mode (A, B, C) for a task.",
+    "open": "Open the URL associated with a task by ID."
 }
 # cmds = list(COMMANDS.keys()) # No longer needed directly for choices
 __version__ = importlib.metadata.version(__package__)
@@ -60,6 +61,8 @@ def init_args() -> Dict:
     parser_show = subparsers.add_parser("show", help=COMMANDS["show"])
     parser_show.add_argument("-w", "--week", action="store_true", help="Show tasks added or completed in the last week.")
     parser_show.add_argument("--now", action="store_true", help="Show only tasks in mode A.")
+    parser_show.add_argument("--go", action="store_true", help="Combined with task_id to open URL in browser.")
+    parser_show.add_argument("task_id", nargs="?", type=int, help="The ID of the task to show details for.")
 
     # --- Priority Up command ---
     parser_prio_up = subparsers.add_parser("^", help=COMMANDS["^"])
@@ -73,6 +76,10 @@ def init_args() -> Dict:
     parser_mode = subparsers.add_parser("mode", help=COMMANDS["mode"])
     parser_mode.add_argument("task_id", type=int, help="The ID of the task to set the mode for.")
     parser_mode.add_argument("mode_value", choices=['A', 'B', 'C'], help="The mode to set (A, B, or C).")
+
+    # --- Open command ---
+    parser_open = subparsers.add_parser("open", help=COMMANDS["open"])
+    parser_open.add_argument("task_id", type=int, help="The ID of the task to open the URL for.")
 
 
     # Manually handle default command 'show' if no command is provided
