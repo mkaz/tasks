@@ -15,10 +15,10 @@ def create_schema(conn: Connection):
             id INTEGER PRIMARY KEY,
             task TEXT NOT NULL,
             url TEXT,
-            dt_completed DATETIME DEFAULT 0,
-            dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
             priority INTEGER DEFAULT 2,
-            mode TEXT DEFAULT 'Now' CHECK(mode IN ('Now', 'Later'))
+            mode TEXT DEFAULT 'Now',
+            dt_completed DATETIME DEFAULT 0,
+            dt_created DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
