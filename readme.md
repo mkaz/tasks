@@ -24,7 +24,7 @@ USAGE: tasks [flags] [command] [id] [text]
 COMMANDS:
   add
 	  Add new task, [text] required
-  done
+  do
 	  Mark task as done, [id] ... at least one required
   note
 	  Add note to task, [id] and [text] required
@@ -44,7 +44,7 @@ COMMANDS:
 
 Tasks uses a SQLite db to store its data. The program will look in this order for determining what database file to use. Adjust to fit your needs, maybe different databases for differnt projects.
 
-1. If `--taskdb DBFILE` flag on command-line
+1. If `--db DBFILE` flag on command-line
 2. If `tasks.db` file in current directory
 3. If environment variable `TASKS_DB` is set
 4. Uses your OS data directory

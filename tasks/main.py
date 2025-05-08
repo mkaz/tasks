@@ -15,14 +15,14 @@ import webbrowser
 import tasks.dbactions as db
 import tasks.reports as reports
 from tasks.config import init_args
-
+from tasks.task import Task
 
 
 def main() -> None:
     """Main entry point for the task application."""
     args = init_args()
 
-    dbfile = Path(args["taskdb"])
+    dbfile = Path(args["db"])
     if args["info"]:
         print(f"Using tasks.db {dbfile}")
 
@@ -36,34 +36,33 @@ def main() -> None:
 
         if is_new_db:
             db.create_schema(conn)
-        else:
-            # Migrate existing database if needed
-            db.migrate_schema(conn)
 
         command = args["command"]
         match command:
             case "add":
-                handle_add(conn, args["task_description"])
+                handle_add(conn, args)
             case "del":
-                handle_delete(conn, args["task_ids"])
+                handle_delete(conn, args)
             case "do":
-                handle_do(conn, args["task_ids"])
+                handle_do(conn, args)
             case "edit":
-                handle_edit(conn, args["task_id"])
+                handle_edit(conn, args)
             case "show":
                 handle_show(conn, args)
             case "^":
-                handle_priority_change(conn, args["task_ids"], True)
+                handle_priority_change(conn, args, True)
             case "v":
-                handle_priority_change(conn, args["task_ids"], False)
+                handle_priority_change(conn, args, False)
             case "mode":
-                handle_mode(conn, args["task_id"], args["mode_value"])
+                handle_mode(conn, args)
             case "open":
-                handle_open(conn, args["task_id"])
+                handle_open(conn, args)
+            case "migrate":
+                db.migrate_schema(conn)
             case None:
-                 handle_show(conn, args["week"], args["now"])
+                handle_show(conn, args)
             case _:
-                 print(f"Unknown or unimplemented command: {command}")
+                print(f"Unknown or unimplemented command: {command}")
 
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -72,52 +71,90 @@ def main() -> None:
         conn.close()
 
 
-def handle_add(conn: sqlite3.Connection, task_description: str) -> None:
+def handle_add(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the add command."""
-    task_id = db.insert_task(conn, task_description)
-    print(f"Created Task #{task_id}")
+    task_id = Task.create(conn, args["task_description"])
+    if task_id:
+        print(f"Created Task #{task_id}")
+    else:
+        print("Error: Could not create task.")
 
 
-def handle_delete(conn: sqlite3.Connection, task_ids: List[int]) -> None:
+def handle_delete(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the delete command."""
-    for task_id in task_ids:
-        db.task_delete(conn, task_id)
-        print(f"Task #{task_id} deleted.")
+    for task_id in args["task_ids"]:
+        task = db.get_task(conn, task_id)
+        if task:
+            task.delete(conn)
+            print(f"Task #{task_id} deleted.")
+        else:
+            print(f"> Task #{task_id} not found for deletion.")
 
 
-def handle_do(conn: sqlite3.Connection, task_ids: List[int]) -> None:
+def handle_do(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the do command."""
-    for task_id in task_ids:
-        db.mark_done(conn, task_id)
-        print(f"Task #{task_id} marked done.")
+    for task_id in args["task_ids"]:
+        task = db.get_task(conn, task_id)
+        if task:
+            task.mark_done(conn)
+            print(f"Task #{task_id} marked done.")
+        else:
+            print(f"> Task #{task_id} not found to mark as done.")
 
 
-def handle_edit(conn: sqlite3.Connection, task_id: int) -> None:
+def handle_edit(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the edit command."""
-    task = db.get_task(conn, task_id)
+    task = db.get_task(conn, args["task_id"])
     if task:
-        new_text = input_prefill(f"Update Task Description for #{task_id}: ", task['task'])
-        new_url = input_prefill(f"Update URL for #{task_id} (current: {task['url']}): ", task['url'] or "")
+        new_text = input_prefill(
+            f"Update Task Description for #{args['task_id']}: ", task.task
+        )
+        # Ensure task.url is treated as None if it's an empty string or None from db
+        current_url = task.url if task.url else ""
+        new_url_input = input_prefill(
+            f"Update URL for #{args['task_id']} (current: {current_url}): ",
+            current_url,
+        )
 
-        if new_text is not None: # Check if new_text is not None (i.e., not cancelled)
-            db.task_update(conn, task_id, new_text, new_url if new_url is not None else task['url'])
-            print(f"Task #{task_id} updated.")
+        # Determine the URL to save. If new_url_input is empty, it means user wants to clear it (save as None)
+        # If new_url_input is same as current_url, user didn't change it.
+        # Original behavior: task_update used task["url"] (which could be None) if new_url was None.
+        # The Task.update_details method expects None to mean "don't update url", or a string to update it.
+        # To clear a URL, we need to explicitly pass an empty string or handle it.
+        # For simplicity, let's ensure new_url_to_save is None if the input is empty,
+        # and the original task.url if the input matches current_url (no change).
+        # And the new input if it's different and not empty.
+
+        url_to_save: Optional[str]
+
+        if (
+            new_text is not None
+        ):  # Check if new_text is not None (i.e., not cancelled by Ctrl+C/D)
+            if new_url_input is not None:
+                if new_url_input == "":  # User explicitly cleared the URL
+                    url_to_save = None
+                elif new_url_input == current_url:  # URL unchanged
+                    url_to_save = task.url  # Preserve original None if it was None
+                else:  # URL changed to a new non-empty value
+                    url_to_save = new_url_input
+            else:  # new_url_input was None (Ctrl+C/D)
+                url_to_save = task.url  # keep original
+
+            task.update_details(conn, new_text, url_to_save)
+            print(f"Task #{args['task_id']} updated.")
         else:
             print("Edit cancelled.")
     else:
-        print(f"> Task #{task_id} not found")
+        print(f"> Task #{args['task_id']} not found")
 
 
 def handle_show(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the show command."""
-    if args["week"]:
+    if args.get("week"):
         new = db.get_tasks_new(conn, days=7)
         com = db.get_tasks_com(conn, days=7)
         reports.show_tasks_week(new, com)
-    elif args["now"]:
-        tasks = db.get_tasks_by_mode(conn, mode='A')
-        reports.show_tasks_list(tasks)
-    elif args["task_id"]:
+    elif args.get("task_id"):
         task = db.get_task(conn, args["task_id"])
         reports.show_task_details(task)
     else:
@@ -136,10 +173,10 @@ def input_prefill(prompt_str: str, text: str) -> str:
 
 
 def handle_priority_change(
-    conn: sqlite3.Connection, task_ids: List[int], increase: bool
+    conn: sqlite3.Connection, args: dict, increase: bool
 ) -> None:
     """Handle priority change commands (^ or v)."""
-    for task_id in task_ids:
+    for task_id in args["task_ids"]:
         if increase:
             db.increase_priority(conn, task_id)
             print(f"Task #{task_id} priority increased.")
@@ -148,26 +185,26 @@ def handle_priority_change(
             print(f"Task #{task_id} priority decreased.")
 
 
-def handle_mode(conn: sqlite3.Connection, task_id: int, mode: str) -> None:
+def handle_mode(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the mode command to set task mode."""
     try:
-        db.set_task_mode(conn, task_id, mode)
-        print(f"Task #{task_id} mode set to {mode}")
+        db.set_task_mode(conn, args["task_id"], args["mode_value"])
+        print(f"Task #{args['task_id']} mode set to {args['mode_value']}")
     except ValueError as e:
         print(f"> {e}")
 
 
-def handle_open(conn: sqlite3.Connection, task_id: int) -> None:
+def handle_open(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the open command to open the URL of a task."""
-    task = db.get_task(conn, task_id)
+    task = db.get_task(conn, args["task_id"])
     if task:
-        if task['url']:
-            print(f"Opening URL for Task #{task_id}: {task['url']}")
-            webbrowser.open(task['url'])
+        if task["url"]:
+            print(f"Opening URL for Task #{args['task_id']}: {task['url']}")
+            webbrowser.open(task["url"])
         else:
-            print(f"> Task #{task_id} has no URL.")
+            print(f"> Task #{args['task_id']} has no URL.")
     else:
-        print(f"> Task #{task_id} not found.")
+        print(f"> Task #{args['task_id']} not found.")
 
 
 if __name__ == "__main__":

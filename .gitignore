@@ -2,11 +2,13 @@
 .DS_Store
 .vscode
 .aider*
+.ropeproject
 
 # Python
 uv.lock
 .ruff_cache
 .venv
+dist/
 
 # Data
 tasks.db

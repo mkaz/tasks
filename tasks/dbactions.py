@@ -1,19 +1,13 @@
 from sqlite3 import Connection, Error
 from typing import List, Optional
+import sys
+
+from tasks.task import Task
 
 
 def create_schema(conn: Connection):
     """Create schema. Will not overwrite if exists"""
     cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER PRIMARY KEY
-        )
-        """
-    )
-    # Initialize schema version if not already set
-    cur.execute("INSERT OR IGNORE INTO schema_version (version) VALUES (2)")
 
     cur.execute(
         """
@@ -21,10 +15,10 @@ def create_schema(conn: Connection):
             id INTEGER PRIMARY KEY,
             task TEXT NOT NULL,
             url TEXT,
-            dt_completed DATETIME DEFAULT 0,
-            dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
             priority INTEGER DEFAULT 2,
-            mode TEXT DEFAULT 'A' CHECK(mode IN ('A', 'B', 'C'))
+            mode TEXT DEFAULT 'Now',
+            dt_completed DATETIME DEFAULT 0,
+            dt_created DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
@@ -44,19 +38,23 @@ def get_schema_version(conn: Connection) -> int:
     return 0
 
 
-def get_task(conn: Connection, task_id: int) -> List:
+def get_task(conn: Connection, task_id: int) -> Optional[Task]:
     cur = conn.cursor()
     cur.execute("SELECT * FROM tasks WHERE id = ?", [task_id])
-    return cur.fetchone()
+    row = cur.fetchone()
+    if row:
+        return Task(**dict(row))
+    return None
 
 
-def get_tasks(conn: Connection) -> List:
+def get_tasks(conn: Connection) -> List[Task]:
     cur = conn.cursor()
     cur.execute("SELECT * FROM tasks WHERE dt_completed = 0 ORDER BY priority, id")
-    return cur.fetchall()
+    rows = cur.fetchall()
+    return [Task(**dict(row)) for row in rows]
 
 
-def get_tasks_new(conn: Connection, days: int) -> List:
+def get_tasks_new(conn: Connection, days: int) -> List[Task]:
     cur = conn.cursor()
     sql = f"""
         SELECT * FROM tasks
@@ -65,82 +63,19 @@ def get_tasks_new(conn: Connection, days: int) -> List:
          ORDER BY priority, id
     """
     cur.execute(sql)
-    return cur.fetchall()
+    rows = cur.fetchall()
+    return [Task(**dict(row)) for row in rows]
 
 
-def get_tasks_com(conn: Connection, days: int) -> List:
+def get_tasks_com(conn: Connection, days: int) -> List[Task]:
     cur = conn.cursor()
     sql = f"""
         SELECT * FROM tasks
          WHERE dt_completed >= date('now', '-{days} days')
     """
     cur.execute(sql)
-    return cur.fetchall()
-
-
-def get_tasks_by_mode(conn: Connection, mode: str) -> List:
-    cur = conn.cursor()
-    sql = """
-        SELECT * FROM tasks
-        WHERE dt_completed = 0
-        AND mode = ?
-    """
-    cur.execute(sql, [mode])
-    return cur.fetchall()
-
-
-def insert_task(conn: Connection, task: str) -> Optional[int]:
-    """Insert task into database"""
-    cur = conn.cursor()
-    sql = "INSERT INTO tasks (task) VALUES (?)"
-    cur.execute(sql, [task])
-    conn.commit()
-
-    return cur.lastrowid
-
-
-def mark_done(conn: Connection, task_id: int):
-    """Mark task id done"""
-    cur = conn.cursor()
-    sql = """
-        UPDATE tasks
-           SET dt_completed = CURRENT_TIMESTAMP
-         WHERE id = ?
-    """
-    cur.execute(sql, [task_id])
-    conn.commit()
-
-
-def task_update(
-    conn: Connection, task_id: int, task_text: str, url: Optional[str] = None
-):
-    """Update task with new text and optionally a new URL"""
-    cur = conn.cursor()
-    fields_to_update = {"task": task_text}
-    if url is not None:
-        fields_to_update["url"] = url
-
-    set_clause = ", ".join([f"{key} = ?" for key in fields_to_update])
-    values = list(fields_to_update.values()) + [task_id]
-
-    sql = f"""
-        UPDATE tasks
-           SET {set_clause}
-         WHERE id = ?
-    """
-    cur.execute(sql, values)
-    conn.commit()
-
-
-def task_delete(conn: Connection, task_id: int):
-    """Mark task id done"""
-    cur = conn.cursor()
-    sql = """
-        DELETE FROM tasks
-         WHERE id = ?
-    """
-    cur.execute(sql, [task_id])
-    conn.commit()
+    rows = cur.fetchall()
+    return [Task(**dict(row)) for row in rows]
 
 
 def increase_priority(conn: Connection, task_id: int):
@@ -181,68 +116,50 @@ def set_task_mode(conn: Connection, task_id: int, mode: str):
     conn.commit()
 
 
-def get_tasks_by_mode(conn: Connection, mode: str) -> List:
+def get_tasks_by_mode(conn: Connection, mode: str) -> List[Task]:
     """Get all tasks for a specific mode"""
     cur = conn.cursor()
     sql = """
         SELECT * FROM tasks
         WHERE dt_completed = 0
-        AND mode = ?
+            AND mode = ?
         ORDER BY priority, id
     """
     cur.execute(sql, [mode])
-    return cur.fetchall()
+    rows = cur.fetchall()
+    return [Task(**dict(row)) for row in rows]
 
 
 def migrate_schema(conn: Connection) -> None:
-    """Migrate database schema to add mode column and url column."""
+    """Migrate database schema."""
+
     cur = conn.cursor()
 
-    current_version = get_schema_version(conn)
+    # Drop schema_version table - not needed anymore
+    cur.execute("DROP TABLE IF EXISTS schema_version")
+    conn.commit()
 
-    if current_version < 1:
-        # This handles databases created before the schema_version table existed
-        # and before the 'mode' column was introduced via the old migrate_schema.
-        # Check if mode column exists
-        cur.execute("PRAGMA table_info(tasks)")
-        columns = cur.fetchall()
-        has_mode = any(col[1] == "mode" for col in columns)
+    # Get current columns
+    cur.execute("PRAGMA table_info(tasks)")
+    columns = cur.fetchall()
 
-        if not has_mode:
-            # Add mode column with default value
-            cur.execute("""
-                ALTER TABLE tasks
-                ADD COLUMN mode TEXT DEFAULT 'A'
-                CHECK(mode IN ('A', 'B', 'C'))
-            """)
-            conn.commit()  # Commit after adding mode
+    has_mode = any(col[1] == "mode" for col in columns)
 
-        # At this point, 'mode' column exists or was just added.
-        # Now introduce schema_version table and set version to 1.
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS schema_version (
-                version INTEGER PRIMARY KEY
-            )
-            """
-        )
-        cur.execute("INSERT OR REPLACE INTO schema_version (version) VALUES (1)")
-        conn.commit()  # Commit after setting version to 1
-        current_version = 1  # Update current_version for subsequent migrations
+    # Add mode column with default value
+    if not has_mode:
+        print("Adding mode column...")
+        cur.execute("""
+            ALTER TABLE tasks
+                ADD COLUMN mode TEXT DEFAULT 'Now'
+        """)
+        conn.commit()
 
-    if current_version < 2:
-        # Migration for adding the 'url' column
-        cur.execute("PRAGMA table_info(tasks)")
-        columns = cur.fetchall()
-        has_url = any(col[1] == "url" for col in columns)
-
-        if not has_url:
-            cur.execute("""
-                ALTER TABLE tasks
+    # Add url column
+    has_url = any(col[1] == "url" for col in columns)
+    if not has_url:
+        print("Adding url column...")
+        cur.execute("""
+            ALTER TABLE tasks
                 ADD COLUMN url TEXT
-            """)
-            conn.commit()  # Commit after adding url
-
-        # Update schema version to 2
-        cur.execute("UPDATE schema_version SET version = 2")
+        """)
         conn.commit()
