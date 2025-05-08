@@ -1,19 +1,11 @@
 from sqlite3 import Connection, Error
 from typing import List, Optional
+import sys
 
 
 def create_schema(conn: Connection):
     """Create schema. Will not overwrite if exists"""
     cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER PRIMARY KEY
-        )
-        """
-    )
-    # Initialize schema version if not already set
-    cur.execute("INSERT OR IGNORE INTO schema_version (version) VALUES (2)")
 
     cur.execute(
         """
@@ -24,7 +16,7 @@ def create_schema(conn: Connection):
             dt_completed DATETIME DEFAULT 0,
             dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
             priority INTEGER DEFAULT 2,
-            mode TEXT DEFAULT 'A' CHECK(mode IN ('A', 'B', 'C'))
+            mode TEXT DEFAULT 'Now' CHECK(mode IN ('Now', 'Later'))
         )
         """
     )
@@ -75,17 +67,6 @@ def get_tasks_com(conn: Connection, days: int) -> List:
          WHERE dt_completed >= date('now', '-{days} days')
     """
     cur.execute(sql)
-    return cur.fetchall()
-
-
-def get_tasks_by_mode(conn: Connection, mode: str) -> List:
-    cur = conn.cursor()
-    sql = """
-        SELECT * FROM tasks
-        WHERE dt_completed = 0
-        AND mode = ?
-    """
-    cur.execute(sql, [mode])
     return cur.fetchall()
 
 
@@ -187,7 +168,7 @@ def get_tasks_by_mode(conn: Connection, mode: str) -> List:
     sql = """
         SELECT * FROM tasks
         WHERE dt_completed = 0
-        AND mode = ?
+            AND mode = ?
         ORDER BY priority, id
     """
     cur.execute(sql, [mode])
@@ -195,54 +176,35 @@ def get_tasks_by_mode(conn: Connection, mode: str) -> List:
 
 
 def migrate_schema(conn: Connection) -> None:
-    """Migrate database schema to add mode column and url column."""
+    """Migrate database schema."""
+
     cur = conn.cursor()
 
-    current_version = get_schema_version(conn)
+    # Drop schema_version table - not needed anymore
+    cur.execute("DROP TABLE IF EXISTS schema_version")
+    conn.commit()
 
-    if current_version < 1:
-        # This handles databases created before the schema_version table existed
-        # and before the 'mode' column was introduced via the old migrate_schema.
-        # Check if mode column exists
-        cur.execute("PRAGMA table_info(tasks)")
-        columns = cur.fetchall()
-        has_mode = any(col[1] == "mode" for col in columns)
+    # Get current columns
+    cur.execute("PRAGMA table_info(tasks)")
+    columns = cur.fetchall()
 
-        if not has_mode:
-            # Add mode column with default value
-            cur.execute("""
-                ALTER TABLE tasks
-                ADD COLUMN mode TEXT DEFAULT 'A'
-                CHECK(mode IN ('A', 'B', 'C'))
-            """)
-            conn.commit()  # Commit after adding mode
+    has_mode = any(col[1] == "mode" for col in columns)
 
-        # At this point, 'mode' column exists or was just added.
-        # Now introduce schema_version table and set version to 1.
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS schema_version (
-                version INTEGER PRIMARY KEY
-            )
-            """
-        )
-        cur.execute("INSERT OR REPLACE INTO schema_version (version) VALUES (1)")
-        conn.commit()  # Commit after setting version to 1
-        current_version = 1  # Update current_version for subsequent migrations
+    # Add mode column with default value
+    if not has_mode:
+        print("Adding mode column...")
+        cur.execute("""
+            ALTER TABLE tasks
+                ADD COLUMN mode TEXT DEFAULT 'Now'
+        """)
+        conn.commit()
 
-    if current_version < 2:
-        # Migration for adding the 'url' column
-        cur.execute("PRAGMA table_info(tasks)")
-        columns = cur.fetchall()
-        has_url = any(col[1] == "url" for col in columns)
-
-        if not has_url:
-            cur.execute("""
-                ALTER TABLE tasks
+    # Add url column
+    has_url = any(col[1] == "url" for col in columns)
+    if not has_url:
+        print("Adding url column...")
+        cur.execute("""
+            ALTER TABLE tasks
                 ADD COLUMN url TEXT
-            """)
-            conn.commit()  # Commit after adding url
-
-        # Update schema version to 2
-        cur.execute("UPDATE schema_version SET version = 2")
+        """)
         conn.commit()

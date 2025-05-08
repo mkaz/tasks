@@ -14,117 +14,184 @@ COMMANDS = {
     "del": "Delete one or more tasks by ID.",
     "do": "Mark one or more tasks as done by ID.",
     "edit": "Edit an existing task by ID.",
-    # "note": "Add a note to a task by ID.", # Not implemented yet
     "show": "Show tasks (default command). Filter by status or search term.",
     "^": "Increase priority of one or more tasks by ID.",
     "v": "Decrease priority of one or more tasks by ID.",
     "mode": "Set the mode (A, B, C) for a task.",
-    "open": "Open the URL associated with a task by ID."
+    "open": "Open the URL associated with a task by ID.",
+    "migrate": "Migrate the database schema.",
 }
-# cmds = list(COMMANDS.keys()) # No longer needed directly for choices
+
 __version__ = importlib.metadata.version(__package__)
 
 
 def init_args() -> Dict:
     """Parse and return the command-line arguments."""
-
-    parser = argparse.ArgumentParser(
-        description="A simple command-line task manager.",
-        # No longer need epilog with command list, subparsers handle this
-        formatter_class=argparse.RawDescriptionHelpFormatter
+    # First check for global flags that cause early exit
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument(
+        "--version", action="store_true", help="Show the application version and exit."
     )
-    parser.add_argument("-i", "--info", action="store_true", help="Display task database location and version information.")
-    parser.add_argument("--taskdb", help="Specify a path to the SQLite database file (overrides default locations).")
-    parser.add_argument("--version", "-V", action="store_true", help="Show the application version and exit.") # Changed -v to -V to avoid conflict with subparser 'v'
+    pre_parser.add_argument(
+        "--info",
+        action="store_true",
+        help="Display task database location and version information.",
+    )
+    pre_parser.add_argument(
+        "--db",
+        help="Specify a path to the SQLite database file (overrides default locations).",
+    )
+    pre_args, remaining = pre_parser.parse_known_args()
 
-    subparsers = parser.add_subparsers(dest="command", title="Available commands",
-                                       help="Run 'task <command> -h' for more information on a specific command.")
-    subparsers.required = False # Allow running 'task' without a command (defaults to show)
-
-    # --- Add command ---
-    parser_add = subparsers.add_parser("add", help=COMMANDS["add"])
-    parser_add.add_argument("task_description", nargs="+", help="The description of the task to add.")
-
-    # --- Del command ---
-    parser_del = subparsers.add_parser("del", help=COMMANDS["del"])
-    parser_del.add_argument("task_ids", nargs="+", type=int, help="The ID(s) of the task(s) to delete.")
-
-    # --- Do command ---
-    parser_do = subparsers.add_parser("do", help=COMMANDS["do"])
-    parser_do.add_argument("task_ids", nargs="+", type=int, help="The ID(s) of the task(s) to mark as done.")
-
-    # --- Edit command ---
-    parser_edit = subparsers.add_parser("edit", help=COMMANDS["edit"])
-    parser_edit.add_argument("task_id", type=int, help="The ID of the task to edit.")
-
-    # --- Show command ---
-    parser_show = subparsers.add_parser("show", help=COMMANDS["show"])
-    parser_show.add_argument("-w", "--week", action="store_true", help="Show tasks added or completed in the last week.")
-    parser_show.add_argument("--now", action="store_true", help="Show only tasks in mode A.")
-    parser_show.add_argument("--go", action="store_true", help="Combined with task_id to open URL in browser.")
-    parser_show.add_argument("task_id", nargs="?", type=int, help="The ID of the task to show details for.")
-
-    # --- Priority Up command ---
-    parser_prio_up = subparsers.add_parser("^", help=COMMANDS["^"])
-    parser_prio_up.add_argument("task_ids", nargs="+", type=int, help="The ID(s) of the task(s) to increase priority for.")
-
-    # --- Priority Down command ---
-    parser_prio_down = subparsers.add_parser("v", help=COMMANDS["v"]) # Used 'v' as command name
-    parser_prio_down.add_argument("task_ids", nargs="+", type=int, help="The ID(s) of the task(s) to decrease priority for.")
-
-    # --- Mode command ---
-    parser_mode = subparsers.add_parser("mode", help=COMMANDS["mode"])
-    parser_mode.add_argument("task_id", type=int, help="The ID of the task to set the mode for.")
-    parser_mode.add_argument("mode_value", choices=['A', 'B', 'C'], help="The mode to set (A, B, or C).")
-
-    # --- Open command ---
-    parser_open = subparsers.add_parser("open", help=COMMANDS["open"])
-    parser_open.add_argument("task_id", type=int, help="The ID of the task to open the URL for.")
-
-
-    # Manually handle default command 'show' if no command is provided
-    # Parse known args first to check for global flags like --version or --taskdb before checking command
-    args, unknown = parser.parse_known_args()
-    parsed_args = vars(args)
-
-    if parsed_args["version"]:
+    # Handle immediate exit flags
+    if pre_args.version:
         print(f"task v{__version__}")
         sys.exit()
 
-    # If no command was explicitly given, default to 'show'
-    # Need to re-parse with the default command if necessary
-    if parsed_args["command"] is None:
-        # Re-parse, inserting 'show' if no command was given
-        # This feels a bit hacky, maybe there's a cleaner argparse way?
-        # Check if sys.argv contains any known command AFTER the script name
-        has_command = any(cmd in COMMANDS for cmd in sys.argv[1:])
-        if not has_command:
-             # Insert 'show' command if none was provided
-             sys.argv.insert(1, 'show')
-             parsed_args = vars(parser.parse_args())
-        else:
-             # A command was likely provided but maybe after an option like --taskdb
-             # Reparse all arguments
-             parsed_args = vars(parser.parse_args())
+    # Get the database location before potentially showing info
+    db_loc = pre_args.db if pre_args.db else get_taskdb_loc()
 
+    if pre_args.info:
+        print(f"Task db: {db_loc}")
+        print(f"Version: v{__version__}")
+        sys.exit()
 
-    # Default command logic if still None (e.g. just 'task' was run)
-    if parsed_args["command"] is None:
-        parsed_args["command"] = "show"
-        # Ensure 'week' exists for the default show command
-        if 'week' not in parsed_args:
-            parsed_args['week'] = False # Default value for show command's week arg
+    # Main parser with common arguments for default 'show' command
+    parser = argparse.ArgumentParser(
+        description="A simple command-line task manager.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
 
-    # Handle taskdb location
-    if parsed_args["taskdb"] is None:
-        parsed_args["taskdb"] = get_taskdb_loc()
+    # Add global arguments and 'show' command arguments to main parser
+    parser.add_argument(
+        "--db",
+        help="Specify a path to the SQLite database file (overrides default locations).",
+    )
+    parser.add_argument(
+        "--info",
+        action="store_true",
+        help="Display task database location and version information.",
+    )
+    parser.add_argument(
+        "--version", action="store_true", help="Show the application version and exit."
+    )
+
+    # Add subparsers
+    subparsers = parser.add_subparsers(
+        dest="command",
+        title="Available commands",
+        help="Run 'task <command> -h' for more information on a specific command.",
+    )
+
+    # Add command
+    parser_add = subparsers.add_parser("add", help=COMMANDS["add"])
+    parser_add.add_argument(
+        "task_description", nargs="+", help="The description of the task to add."
+    )
+
+    # Del command
+    parser_del = subparsers.add_parser("del", help=COMMANDS["del"])
+    parser_del.add_argument(
+        "task_ids", nargs="+", type=int, help="The ID(s) of the task(s) to delete."
+    )
+
+    # Do command
+    parser_do = subparsers.add_parser("do", help=COMMANDS["do"])
+    parser_do.add_argument(
+        "task_ids",
+        nargs="+",
+        type=int,
+        help="The ID(s) of the task(s) to mark as done.",
+    )
+
+    # Edit command
+    parser_edit = subparsers.add_parser("edit", help=COMMANDS["edit"])
+    parser_edit.add_argument("task_id", type=int, help="The ID of the task to edit.")
+
+    # Show command - duplicate the arguments from main parser
+    parser_show = subparsers.add_parser("show", help=COMMANDS["show"])
+    parser_show.add_argument(
+        "-w",
+        "--week",
+        action="store_true",
+        help="Show tasks added or completed in the last week.",
+    )
+    parser_show.add_argument(
+        "--go",
+        action="store_true",
+        help="Combined with task_id to open URL in browser.",
+    )
+    parser_show.add_argument(
+        "show_params",
+        nargs="*",
+        default=[],
+        help="Task ID or search terms. Omitting shows all relevant tasks.",
+    )
+
+    # Priority Up command
+    parser_prio_up = subparsers.add_parser("^", help=COMMANDS["^"])
+    parser_prio_up.add_argument(
+        "task_ids",
+        nargs="+",
+        type=int,
+        help="The ID(s) of the task(s) to increase priority for.",
+    )
+
+    # Priority Down command
+    parser_prio_down = subparsers.add_parser("v", help=COMMANDS["v"])
+    parser_prio_down.add_argument(
+        "task_ids",
+        nargs="+",
+        type=int,
+        help="The ID(s) of the task(s) to decrease priority for.",
+    )
+
+    # Mode command
+    parser_mode = subparsers.add_parser("mode", help=COMMANDS["mode"])
+    parser_mode.add_argument(
+        "task_id", type=int, help="The ID of the task to set the mode for."
+    )
+    parser_mode.add_argument(
+        "mode_value", choices=["Now", "Later"], help="The mode to set (Now, Later)."
+    )
+
+    # Open command
+    parser_open = subparsers.add_parser("open", help=COMMANDS["open"])
+    parser_open.add_argument(
+        "task_id", type=int, help="The ID of the task to open the URL for."
+    )
+
+    # Migrate command
+    subparsers.add_parser("migrate", help=COMMANDS["migrate"])
+
+    # Parse the arguments
+    args_for_main_parser = list(remaining)
+
+    # Prepend 'show' if no command is given or if the first arg is not a command
+    # and not requesting help for the main parser.
+    if not ("-h" in args_for_main_parser or "--help" in args_for_main_parser):
+        if (
+            not args_for_main_parser
+            or args_for_main_parser[0] not in subparsers.choices
+        ):
+            args_for_main_parser.insert(0, "show")
+
+    parsed_ns = parser.parse_args(args_for_main_parser)
+    parsed_args = vars(parsed_ns)
+
+    # Set database location
+    if parsed_args["db"] is None:
+        parsed_args["db"] = db_loc
+
+    # Re-check info flag in case it was specified with a command
+    if parsed_args["info"]:
+        print(f"Task db: {parsed_args['db']}")
+        print(f"Version: v{__version__}")
+        sys.exit()
 
     # Convert 'task_description' list to a single string for 'add' command
     if parsed_args["command"] == "add" and "task_description" in parsed_args:
         parsed_args["task_description"] = " ".join(parsed_args["task_description"])
-
-    # For commands expecting list of IDs, ensure the key exists even if parsing fails
-    # Although argparse with nargs='+' should handle this. Add safety checks if needed.
 
     return parsed_args
 
