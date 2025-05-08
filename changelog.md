@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.20 - 2025-05-08
+## v2.2.0 - 2025-05-08
 
 - Remove database table to track schema
     - Create new `migrate` command
