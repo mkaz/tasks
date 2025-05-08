@@ -2,6 +2,8 @@ from sqlite3 import Connection, Error
 from typing import List, Optional
 import sys
 
+from tasks.task import Task
+
 
 def create_schema(conn: Connection):
     """Create schema. Will not overwrite if exists"""
@@ -36,19 +38,23 @@ def get_schema_version(conn: Connection) -> int:
     return 0
 
 
-def get_task(conn: Connection, task_id: int) -> List:
+def get_task(conn: Connection, task_id: int) -> Optional[Task]:
     cur = conn.cursor()
     cur.execute("SELECT * FROM tasks WHERE id = ?", [task_id])
-    return cur.fetchone()
+    row = cur.fetchone()
+    if row:
+        return Task(**dict(row))
+    return None
 
 
-def get_tasks(conn: Connection) -> List:
+def get_tasks(conn: Connection) -> List[Task]:
     cur = conn.cursor()
     cur.execute("SELECT * FROM tasks WHERE dt_completed = 0 ORDER BY priority, id")
-    return cur.fetchall()
+    rows = cur.fetchall()
+    return [Task(**dict(row)) for row in rows]
 
 
-def get_tasks_new(conn: Connection, days: int) -> List:
+def get_tasks_new(conn: Connection, days: int) -> List[Task]:
     cur = conn.cursor()
     sql = f"""
         SELECT * FROM tasks
@@ -57,71 +63,19 @@ def get_tasks_new(conn: Connection, days: int) -> List:
          ORDER BY priority, id
     """
     cur.execute(sql)
-    return cur.fetchall()
+    rows = cur.fetchall()
+    return [Task(**dict(row)) for row in rows]
 
 
-def get_tasks_com(conn: Connection, days: int) -> List:
+def get_tasks_com(conn: Connection, days: int) -> List[Task]:
     cur = conn.cursor()
     sql = f"""
         SELECT * FROM tasks
          WHERE dt_completed >= date('now', '-{days} days')
     """
     cur.execute(sql)
-    return cur.fetchall()
-
-
-def insert_task(conn: Connection, task: str) -> Optional[int]:
-    """Insert task into database"""
-    cur = conn.cursor()
-    sql = "INSERT INTO tasks (task) VALUES (?)"
-    cur.execute(sql, [task])
-    conn.commit()
-
-    return cur.lastrowid
-
-
-def mark_done(conn: Connection, task_id: int):
-    """Mark task id done"""
-    cur = conn.cursor()
-    sql = """
-        UPDATE tasks
-           SET dt_completed = CURRENT_TIMESTAMP
-         WHERE id = ?
-    """
-    cur.execute(sql, [task_id])
-    conn.commit()
-
-
-def task_update(
-    conn: Connection, task_id: int, task_text: str, url: Optional[str] = None
-):
-    """Update task with new text and optionally a new URL"""
-    cur = conn.cursor()
-    fields_to_update = {"task": task_text}
-    if url is not None:
-        fields_to_update["url"] = url
-
-    set_clause = ", ".join([f"{key} = ?" for key in fields_to_update])
-    values = list(fields_to_update.values()) + [task_id]
-
-    sql = f"""
-        UPDATE tasks
-           SET {set_clause}
-         WHERE id = ?
-    """
-    cur.execute(sql, values)
-    conn.commit()
-
-
-def task_delete(conn: Connection, task_id: int):
-    """Mark task id done"""
-    cur = conn.cursor()
-    sql = """
-        DELETE FROM tasks
-         WHERE id = ?
-    """
-    cur.execute(sql, [task_id])
-    conn.commit()
+    rows = cur.fetchall()
+    return [Task(**dict(row)) for row in rows]
 
 
 def increase_priority(conn: Connection, task_id: int):
@@ -162,7 +116,7 @@ def set_task_mode(conn: Connection, task_id: int, mode: str):
     conn.commit()
 
 
-def get_tasks_by_mode(conn: Connection, mode: str) -> List:
+def get_tasks_by_mode(conn: Connection, mode: str) -> List[Task]:
     """Get all tasks for a specific mode"""
     cur = conn.cursor()
     sql = """
@@ -172,7 +126,8 @@ def get_tasks_by_mode(conn: Connection, mode: str) -> List:
         ORDER BY priority, id
     """
     cur.execute(sql, [mode])
-    return cur.fetchall()
+    rows = cur.fetchall()
+    return [Task(**dict(row)) for row in rows]
 
 
 def migrate_schema(conn: Connection) -> None:

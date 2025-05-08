@@ -3,19 +3,19 @@ from rich.table import Table
 from rich.console import Console
 from typing import List
 
+# local
+from tasks.task import Task
+
 
 def get_priority_style(priority: int) -> str:
+    if priority == 0:
+        return "bold red"
     if priority == 1:
-        return "cyan"
-    elif priority == 2:
-        return "yellow"
-    elif priority == 3:
-        return "white"
-    else:
-        return "dim white"
+        return "bold yellow"
+    return "green"  # Default for 2 and anything higher
 
 
-def show_tasks(tasks: List):
+def show_tasks(tasks: List[Task]):
     console = Console()
 
     # Create a single table with two columns for modes
@@ -28,10 +28,10 @@ def show_tasks(tasks: List):
     later_tasks = []
 
     for task in tasks:
-        mode = task["mode"] if "mode" in task else "Now"
-        priority_style = get_priority_style(task["priority"])
+        mode = task.mode
+        priority_style = get_priority_style(task.priority)
         formatted_task = (
-            f"{task['id']:>3} [{priority_style}]{task['task']}[/{priority_style}]"
+            f"{task.id:>3} [{priority_style}]{task.task}[/{priority_style}]"
         )
 
         if mode == "Now":
@@ -53,22 +53,22 @@ def show_tasks(tasks: List):
     console.print(table)
 
 
-def show_tasks_list(tasks: List):
+def show_tasks_list(tasks: List[Task]):
     console = Console()
     console.print(make_tasks_table(tasks))
 
 
-def show_task_details(task):
-    print(f"Task ID  : {task['id']}")
-    print(f"Task     : {task['task']}")
-    print(f"Priority : {task['priority']}")
-    print(f"Mode     : {task['mode']}")
-    print(f"URL      : {task['url']}")
-    print(f"Completed: {task['dt_completed']}")
-    print(f"Created  : {task['dt_created']}")
+def show_task_details(task: Task):
+    print(f"Task ID  : {task.id}")
+    print(f"Task     : {task.task}")
+    print(f"Priority : {task.priority}")
+    print(f"Mode     : {task.mode}")
+    print(f"URL      : {task.url}")
+    print(f"Completed: {task.dt_completed}")
+    print(f"Created  : {task.dt_created}")
 
 
-def show_tasks_week(new_tasks: List, com_tasks: List):
+def show_tasks_week(new_tasks: List[Task], com_tasks: List[Task]):
     console = Console()
     print("-------------")
     print("[bold magenta]WEEKLY REPORT[/bold magenta]")
@@ -83,18 +83,18 @@ def show_tasks_week(new_tasks: List, com_tasks: List):
 
 
 # Helper function to make a table of tasks
-def make_tasks_table(tasks: List):
+def make_tasks_table(tasks: List[Task]):
     table = Table(show_header=False, padding=(0, 1), width=80)
     table.add_column("ID", justify="right", width=4)
     table.add_column("Task", width=42)
     table.add_column("Priority", justify="left")
 
     for task in tasks:
-        priority_style = get_priority_style(task["priority"])
+        priority_style = get_priority_style(task.priority)
         table.add_row(
-            str(task["id"]),
-            f"[{priority_style}]{task['task']}[/{priority_style}]",
-            f"[{priority_style}]P{task['priority']}[/{priority_style}]",
+            str(task.id),
+            f"[{priority_style}]{task.task}[/{priority_style}]",
+            f"[{priority_style}]P{task.priority}[/{priority_style}]",
         )
 
     return table
