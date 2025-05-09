@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.2.1 - 2025-05-09
+
+- Add tests
+- Add link emoji 🔗 to tasks with URL specified
+
+
 ## v2.2.0 - 2025-05-08
 
 - Remove database table to track schema
