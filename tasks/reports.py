@@ -30,9 +30,8 @@ def show_tasks(tasks: List[Task]):
     for task in tasks:
         mode = task.mode
         priority_style = get_priority_style(task.priority)
-        formatted_task = (
-            f"{task.id:>3} [{priority_style}]{task.task}[/{priority_style}]"
-        )
+        url_indicator = " 🔗" if task.url else ""
+        formatted_task = f"{task.id:>3} [{priority_style}]{task.task}{url_indicator}[/{priority_style}]"
 
         if mode == "Now":
             now_tasks.append(formatted_task)
@@ -91,9 +90,10 @@ def make_tasks_table(tasks: List[Task]):
 
     for task in tasks:
         priority_style = get_priority_style(task.priority)
+        url_indicator = " 🔗" if task.url else ""
         table.add_row(
             str(task.id),
-            f"[{priority_style}]{task.task}[/{priority_style}]",
+            f"[{priority_style}]{task.task}{url_indicator}[/{priority_style}]",
             f"[{priority_style}]P{task.priority}[/{priority_style}]",
         )
 
