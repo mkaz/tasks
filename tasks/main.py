@@ -139,10 +139,12 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
         reports.show_tasks(tasks)
 
 
-def input_prefill(prompt_str: str, text: str) -> str:
+def input_prefill(prompt_str: str, text: Optional[str]) -> str:
     """Prefill input with existing text."""
     try:
-        result = prompt(prompt_str, default=text, auto_suggest=None)
+        # Convert None to empty string to avoid length errors
+        default_text = "" if text is None else text
+        result = prompt(prompt_str, default=default_text, auto_suggest=None)
         return result
     except (KeyboardInterrupt, EOFError):
         print("\nCancelled")
@@ -175,9 +177,9 @@ def handle_open(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the open command to open the URL of a task."""
     task = db.get_task(conn, args["task_id"])
     if task:
-        if task["url"]:
-            print(f"Opening URL for Task #{args['task_id']}: {task['url']}")
-            webbrowser.open(task["url"])
+        if task.url:
+            print(f"Opening URL for Task #{args['task_id']}: {task.url}")
+            webbrowser.open(task.url)
         else:
             print(f"> Task #{args['task_id']} has no URL.")
     else:
