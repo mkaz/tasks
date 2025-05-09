@@ -18,9 +18,13 @@ from tasks.config import init_args
 from tasks.task import Task
 
 
-def main() -> None:
-    """Main entry point for the task application."""
-    args = init_args()
+def main(skip_local=False) -> None:
+    """Main entry point for the task application.
+
+    Args:
+        skip_local: If True, skip checking for a local tasks.db file (useful for testing)
+    """
+    args = init_args(skip_local=skip_local)
 
     dbfile = Path(args["db"])
     if args["info"]:

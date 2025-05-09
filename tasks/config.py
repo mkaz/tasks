@@ -25,8 +25,12 @@ COMMANDS = {
 __version__ = importlib.metadata.version(__package__)
 
 
-def init_args() -> Dict:
-    """Parse and return the command-line arguments."""
+def init_args(skip_local=False) -> Dict:
+    """Parse and return the command-line arguments.
+
+    Args:
+        skip_local: If True, skip checking for a local tasks.db file (useful for testing)
+    """
     # First check for global flags that cause early exit
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument(
@@ -49,7 +53,7 @@ def init_args() -> Dict:
         sys.exit()
 
     # Get the database location before potentially showing info
-    db_loc = pre_args.db if pre_args.db else get_taskdb_loc()
+    db_loc = pre_args.db if pre_args.db else get_taskdb_loc(skip_local=skip_local)
 
     if pre_args.info:
         print(f"Task db: {db_loc}")
@@ -196,14 +200,19 @@ def init_args() -> Dict:
     return parsed_args
 
 
-def get_taskdb_loc() -> Path:
+def get_taskdb_loc(skip_local=False) -> Path:
     """Figure out where the taskdb file should be.
-    See README for spec"""
+    See README for spec
+
+    Args:
+        skip_local: If True, skip checking for a local tasks.db file (useful for testing)
+    """
 
     # check if tasks.db exists in current dir
-    cur_dir = Path(Path.cwd(), "tasks.db")
-    if cur_dir.is_file():
-        return cur_dir
+    if not skip_local:
+        cur_dir = Path(Path.cwd(), "tasks.db")
+        if cur_dir.is_file():
+            return cur_dir
 
     # check for env TASKS_DB
     env_var = os.environ.get("TASKS_DB")
