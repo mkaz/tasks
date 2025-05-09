@@ -122,10 +122,10 @@ def init_args() -> Dict:
         help="Combined with task_id to open URL in browser.",
     )
     parser_show.add_argument(
-        "show_params",
-        nargs="*",
+        "task_id",
+        nargs="?",
         default=[],
-        help="Task ID or search terms. Omitting shows all relevant tasks.",
+        help="Task ID to show details for.",
     )
 
     # Priority Up command
