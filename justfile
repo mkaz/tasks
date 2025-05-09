@@ -4,9 +4,9 @@
 default:
     @just --list
 
-# Run pre-commit checks
-lint:
-    ruff check tasks/
+# Build the project
+build: install
+    uv build
 
 # Clean Python artifacts
 clean:
@@ -16,12 +16,17 @@ clean:
     find . -type d -name __pycache__ -exec rm -rf {} +
     find . -type f -name "*.pyc" -delete
 
-# Build the project
+# Install dependencies
 install:
     uv sync
 
-build: install
-    uv build
+# Run pre-commit checks
+lint:
+    ruff check tasks/
+
+# Run tests
+test *args:
+    uv run -m pytest {{args}}
 
 # Run the CLI application
 run *args:

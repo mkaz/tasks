@@ -1,0 +1,166 @@
+import pytest
+import sys
+from io import StringIO
+from unittest.mock import patch
+import sqlite3
+
+from tasks.main import main
+
+@pytest.fixture
+def capture_output():
+    """Fixture to capture stdout/stderr"""
+    output = StringIO()
+    with patch('sys.stdout', output):
+        yield output
+
+def test_add_task(mock_env_db_path, monkeypatch):
+    """Test adding a task via CLI."""
+    # Mock the sys.argv to simulate CLI call
+    test_args = ['tasks', 'add', 'Test CLI task']
+    output = StringIO()
+    with patch.object(sys, 'argv', test_args), patch('sys.stdout', output):
+        main()
+
+    # Check output message indicates task was created
+    assert "Created Task #" in output.getvalue()
+
+    # Verify task was created in database
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT task FROM tasks WHERE task = ?", ["Test CLI task"])
+    result = cur.fetchone()
+    assert result is not None
+    conn.close()
+
+def test_show_tasks(mock_env_db_path, monkeypatch):
+    """Test showing tasks."""
+    # First add a task so we have something to show
+    conn = sqlite3.connect(mock_env_db_path)
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Task to display"])
+    conn.commit()
+    conn.close()
+
+    # Mock CLI arguments for show command
+    test_args = ['tasks', 'show']
+    output = StringIO()
+    with patch.object(sys, 'argv', test_args), patch('sys.stdout', output):
+        main()
+
+    # Verify output contains our task
+    assert "Task to display" in output.getvalue()
+
+def test_do_task(mock_env_db_path, monkeypatch):
+    """Test marking a task as done."""
+    # First add a task
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Task to complete"])
+    task_id = cur.lastrowid
+    conn.commit()
+    conn.close()  # Close the connection before running the CLI command
+
+    # Run the do command
+    test_args = ['tasks', 'do', str(task_id)]
+    output = StringIO()
+    with patch.object(sys, 'argv', test_args), patch('sys.stdout', output):
+        main()
+
+    # Verify success message
+    assert f"Task #{task_id} marked done" in output.getvalue()
+
+    # Check database to make sure it's marked done
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT dt_completed FROM tasks WHERE id = ?", [task_id])
+    result = cur.fetchone()
+    assert result["dt_completed"] != 0  # Should have a timestamp
+    conn.close()
+
+def test_delete_task(mock_env_db_path, monkeypatch):
+    """Test deleting a task."""
+    # First add a task
+    conn = sqlite3.connect(mock_env_db_path)
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Task to delete"])
+    task_id = cur.lastrowid
+    conn.commit()
+    conn.close()  # Close the connection before running the CLI command
+
+    # Run the delete command
+    test_args = ['tasks', 'del', str(task_id)]
+    output = StringIO()
+    with patch.object(sys, 'argv', test_args), patch('sys.stdout', output):
+        main()
+
+    # Verify success message
+    assert f"Task #{task_id} deleted" in output.getvalue()
+
+    # Check database to make sure it's gone
+    conn = sqlite3.connect(mock_env_db_path)
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM tasks WHERE id = ?", [task_id])
+    result = cur.fetchone()
+    assert result is None
+    conn.close()
+
+def test_priority_change(mock_env_db_path, monkeypatch):
+    """Test changing task priority."""
+    # First add a task with known priority
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (task, priority) VALUES (?, ?)", ["Priority task", 2])
+    task_id = cur.lastrowid
+    conn.commit()
+    conn.close()  # Close the connection before running the CLI command
+
+    # Run the increase priority command
+    test_args = ['tasks', '^', str(task_id)]
+    output = StringIO()
+    with patch.object(sys, 'argv', test_args), patch('sys.stdout', output):
+        main()
+
+    # Verify success message
+    assert f"Task #{task_id} priority increased" in output.getvalue()
+
+    # Check database for updated priority
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT priority FROM tasks WHERE id = ?", [task_id])
+    result = cur.fetchone()
+    assert result["priority"] == 1  # Should be one higher (lower number)
+    conn.close()
+
+def test_mode_change(mock_env_db_path, monkeypatch):
+    """Test changing task mode."""
+    # First add a task with known mode
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (task, mode) VALUES (?, ?)", ["Mode task", "Now"])
+    task_id = cur.lastrowid
+    conn.commit()
+    conn.close()  # Close the connection before running the CLI command
+
+    # Run the mode change command with patched stdout
+    test_args = ['tasks', 'mode', str(task_id), 'Later']
+    output = StringIO()
+    with patch.object(sys, 'argv', test_args), patch('sys.stdout', output):
+        main()
+
+    # Verify success message
+    assert f"Task #{task_id} mode set to Later" in output.getvalue()
+
+    # Check database to make sure it's updated
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT mode FROM tasks WHERE id = ?", [task_id])
+    result = cur.fetchone()
+    assert result["mode"] == "Later"
+    conn.close()
