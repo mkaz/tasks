@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 from sqlite3 import Connection
+import re
 
 
 @dataclass
@@ -14,12 +15,11 @@ class Task:
     url: Optional[str] = None
 
     @staticmethod
-    def create(
-        conn: Connection, task_text: str, url: Optional[str] = None
-    ) -> Optional[int]:
-        """Creates a new task in the database and returns its ID.
-        The URL can be None, which will be stored as NULL in the database.
-        """
+    def create(conn: Connection, args: dict) -> Optional[int]:
+        """Creates a new task in the database and returns its ID."""
+        entry_text = args["task_entry"]
+        task_text, url = parse_entry_text(entry_text)
+
         cur = conn.cursor()
         sql = "INSERT INTO tasks (task, url) VALUES (?, ?)"
         try:
@@ -83,3 +83,17 @@ class Task:
             conn.commit()
         except Exception:
             conn.rollback()
+
+
+def parse_entry_text(entry_text: str) -> tuple[str, Optional[str]]:
+    """Parse the entry text into a task text and URL."""
+    # use regex to find the first URL in entry_text and extract the URL and the rest of the text
+    url_pattern = r"https?://.*?[^\s]+"
+    match = re.search(url_pattern, entry_text)
+    if match:
+        url = match.group(0)
+        task_text = entry_text.replace(url, "")
+    else:
+        url = None
+        task_text = entry_text
+    return task_text, url

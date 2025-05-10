@@ -90,7 +90,7 @@ def init_args(skip_local=False) -> Dict:
     # Add command
     parser_add = subparsers.add_parser("add", help=COMMANDS["add"])
     parser_add.add_argument(
-        "task_description", nargs="+", help="The description of the task to add."
+        "task_entry", nargs="+", help="The text for the task to add."
     )
 
     # Del command
@@ -194,8 +194,8 @@ def init_args(skip_local=False) -> Dict:
         sys.exit()
 
     # Convert 'task_description' list to a single string for 'add' command
-    if parsed_args["command"] == "add" and "task_description" in parsed_args:
-        parsed_args["task_description"] = " ".join(parsed_args["task_description"])
+    if parsed_args["command"] == "add" and "task_entry" in parsed_args:
+        parsed_args["task_entry"] = " ".join(parsed_args["task_entry"])
 
     return parsed_args
 

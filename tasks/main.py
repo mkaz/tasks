@@ -42,49 +42,44 @@ def main(skip_local=False) -> None:
             db.create_schema(conn)
 
         command = args["command"]
-        match command:
-            case "add":
-                handle_add(conn, args)
-            case "del":
-                handle_delete(conn, args)
-            case "do":
-                handle_do(conn, args)
-            case "edit":
-                handle_edit(conn, args)
-            case "show":
-                handle_show(conn, args)
-            case "^":
-                handle_priority_change(conn, args, True)
-            case "v":
-                handle_priority_change(conn, args, False)
-            case "mode":
-                handle_mode(conn, args)
-            case "open":
-                handle_open(conn, args)
-            case "migrate":
-                db.migrate_schema(conn)
-            case None:
-                handle_show(conn, args)
-            case _:
-                print(f"Unknown or unimplemented command: {command}")
+
+        # Command handler mapping
+        command_handlers = {
+            "add": handle_add,
+            "del": handle_del,
+            "do": handle_do,
+            "edit": handle_edit,
+            "show": handle_show,
+            "^": lambda c, a: handle_priority(c, a, True),
+            "v": lambda c, a: handle_priority(c, a, False),
+            "mode": handle_mode,
+            "open": handle_open,
+            "migrate": lambda c, a: db.migrate_schema(c),
+            None: handle_show,
+        }
+
+        handler = command_handlers.get(command)
+        if handler:
+            handler(conn, args)
+        else:
+            print(f"Unknown or unimplemented command: {command}")
 
     except sqlite3.Error as e:
         print(f"Database error: {e}")
-        sys.exit(1)
     finally:
         conn.close()
 
 
 def handle_add(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the add command."""
-    task_id = Task.create(conn, args["task_description"])
+    task_id = Task.create(conn, args)
     if task_id:
         print(f"Created Task #{task_id}")
     else:
         print("Error: Could not create task.")
 
 
-def handle_delete(conn: sqlite3.Connection, args: dict) -> None:
+def handle_del(conn: sqlite3.Connection, args: dict) -> None:
     """Handle the delete command."""
     for task_id in args["task_ids"]:
         task = db.get_task(conn, task_id)
@@ -155,9 +150,7 @@ def input_prefill(prompt_str: str, text: Optional[str]) -> str:
         sys.exit(1)
 
 
-def handle_priority_change(
-    conn: sqlite3.Connection, args: dict, increase: bool
-) -> None:
+def handle_priority(conn: sqlite3.Connection, args: dict, increase: bool) -> None:
     """Handle priority change commands (^ or v)."""
     for task_id in args["task_ids"]:
         if increase:

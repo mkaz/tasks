@@ -1,21 +1,30 @@
 import pytest
 from tasks.task import Task
 
+
 def test_task_create(connection):
     """Test creating a new task."""
     # Test with just task text
-    task_id = Task.create(connection, "Test create task")
+    entry = {"task_entry": "Test create task"}
+    task_id = Task.create(connection, entry)
     assert task_id is not None
 
     # Test with task text and URL
-    task_id_with_url = Task.create(connection, "Test create task with URL", "https://example.com")
+    entry = {"task_entry": "Test create task https://example.com"}
+    task_id_with_url = Task.create(connection, entry)
     assert task_id_with_url is not None
+    # add check for URL in db for this task
+    cur = connection.cursor()
+    cur.execute("SELECT url FROM tasks WHERE id = ?", [task_id_with_url])
+    result = cur.fetchone()
+    assert result[0] == "https://example.com"
 
     # Verify tasks were created
     cur = connection.cursor()
     cur.execute("SELECT COUNT(*) FROM tasks")
     count = cur.fetchone()[0]
     assert count == 2
+
 
 def test_task_mark_done(sample_tasks, connection):
     """Test marking a task as done."""
@@ -33,6 +42,7 @@ def test_task_mark_done(sample_tasks, connection):
     result = cur.fetchone()
     assert result is not None
     assert result["dt_completed"] != 0  # Should be a timestamp
+
 
 def test_task_update_details(sample_tasks, connection):
     """Test updating task details."""
@@ -61,6 +71,7 @@ def test_task_update_details(sample_tasks, connection):
     result = cur.fetchone()
     assert result["task"] == new_text
     assert result["url"] == new_url
+
 
 def test_task_delete(sample_tasks, connection):
     """Test deleting a task."""
