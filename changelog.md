@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.2.2 - 2025-05-10
+
+- Parse URL out of entry text when adding
+
+
 ## v2.2.1 - 2025-05-09
 
 - Add tests
