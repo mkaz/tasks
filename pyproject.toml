@@ -21,6 +21,7 @@ dependencies = [
     "appdirs>=1.4",
     "rich>=13.3",
     "prompt-toolkit>=3.0.50",
+    "textual>=0.41.0",
 ]
 
 [dependency-groups]

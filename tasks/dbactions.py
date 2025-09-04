@@ -1,6 +1,5 @@
 from sqlite3 import Connection, Error
 from typing import List, Optional
-import sys
 
 from tasks.task import Task
 
