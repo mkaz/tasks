@@ -23,7 +23,7 @@ dependencies = [
     "prompt-toolkit>=3.0.50",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=7.0",
     "pytest-mock>=3.10.0",
