@@ -208,13 +208,14 @@ class KanbanBoard(App):
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("a", "add_task", "Add Task"),
-        Binding("<", "move_left", "</> Move"),
+        Binding("<", "move_left", "> Move"),
         Binding(">", "slide_right", ""),
         Binding("r", "refresh", "Refresh"),
         Binding("x", "delete_task", "Delete"),
-        Binding("+", "increase_priority", "+/- Priority"),
+        Binding("+", "increase_priority", "- Priority"),
         Binding("-", "decrease_priority", ""),
         Binding("e", "edit_task", "Edit"),
+        Binding("u", "undo", "Undo"),
     ]
 
     def __init__(self):
@@ -222,6 +223,7 @@ class KanbanBoard(App):
         self.conn: Optional[sqlite3.Connection] = None
         self.current_focus_column = 0  # 0=Later, 1=Now, 2=Done
         self.columns = []
+        self.last_action: Optional[tuple] = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -411,6 +413,8 @@ class KanbanBoard(App):
             return
 
         try:
+            # Store the state before deleting for undo
+            self.last_action = ("delete", task)
             task.delete(self.conn)
             self.notify(f"Deleted task #{task.id}")
             self.refresh_all_tasks()
@@ -486,6 +490,46 @@ class KanbanBoard(App):
                     self.notify(f"Error updating task: {e}", severity="error")
 
         self.push_screen(EditModal(task), handle_edit_task)
+
+    def action_undo(self) -> None:
+        """Undo the last action."""
+        if not self.last_action:
+            self.notify("No action to undo")
+            return
+
+        action_type, data = self.last_action
+
+        try:
+            if action_type == "delete":
+                task_to_restore: TaskModel = data
+                # Since we have the full task model, we can re-insert it.
+                # This is a simplified approach. A robust implementation
+                # might need to handle ID collisions if a new task was created
+                # with the same ID, but that's unlikely in this app.
+                cur = self.conn.cursor()
+                cur.execute(
+                    """
+                    INSERT INTO tasks (id, task, url, priority, dt_created, dt_completed, mode)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        task_to_restore.id,
+                        task_to_restore.task,
+                        task_to_restore.url,
+                        task_to_restore.priority,
+                        task_to_restore.dt_created,
+                        task_to_restore.dt_completed,
+                        task_to_restore.mode,
+                    ),
+                )
+                self.conn.commit()
+                self.notify(f"Restored task #{task_to_restore.id}")
+                self.refresh_all_tasks()
+                self.last_action = None  # Clear undo state
+            else:
+                self.notify("Undo for this action is not implemented")
+        except Exception as e:
+            self.notify(f"Error undoing action: {e}", severity="error")
 
     def action_archive_done(self) -> None:
         """Archive all completed tasks."""
