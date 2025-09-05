@@ -20,6 +20,7 @@ COMMANDS = {
     "mode": "Set the mode (A, B, C) for a task.",
     "open": "Open the URL associated with a task by ID.",
     "migrate": "Migrate the database schema.",
+    "kanban": "Open the kanban board TUI.",
 }
 
 __version__ = importlib.metadata.version(__package__)
@@ -121,6 +122,11 @@ def init_args(skip_local=False) -> Dict:
         help="Show tasks added or completed in the last week.",
     )
     parser_show.add_argument(
+        "--now",
+        action="store_true",
+        help="Show only tasks with mode 'Now'.",
+    )
+    parser_show.add_argument(
         "--go",
         action="store_true",
         help="Combined with task_id to open URL in browser.",
@@ -167,6 +173,9 @@ def init_args(skip_local=False) -> Dict:
 
     # Migrate command
     subparsers.add_parser("migrate", help=COMMANDS["migrate"])
+    
+    # Kanban command
+    subparsers.add_parser("kanban", help=COMMANDS["kanban"])
 
     # Parse the arguments
     args_for_main_parser = list(remaining)

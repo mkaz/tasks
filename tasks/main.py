@@ -8,7 +8,7 @@ import sqlite3
 import sys
 from pathlib import Path
 from prompt_toolkit import prompt
-from typing import List, Optional
+from typing import Optional
 import webbrowser
 
 # local
@@ -55,6 +55,7 @@ def main(skip_local=False) -> None:
             "mode": handle_mode,
             "open": handle_open,
             "migrate": lambda c, a: db.migrate_schema(c),
+            "kanban": handle_kanban,
             None: handle_show,
         }
 
@@ -133,6 +134,9 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
     elif args.get("task_id"):
         task = db.get_task(conn, args["task_id"])
         reports.show_task_details(task)
+    elif args.get("now"):
+        tasks = db.get_tasks_by_mode(conn, "Now")
+        reports.show_tasks(tasks)
     else:
         tasks = db.get_tasks(conn)
         reports.show_tasks(tasks)
@@ -181,6 +185,13 @@ def handle_open(conn: sqlite3.Connection, args: dict) -> None:
             print(f"> Task #{args['task_id']} has no URL.")
     else:
         print(f"> Task #{args['task_id']} not found.")
+
+
+def handle_kanban(conn: sqlite3.Connection, args: dict) -> None:
+    """Handle the kanban command to open the kanban board TUI."""
+    conn.close()  # Close the connection as kanban will create its own
+    from tasks.kanban import run_kanban
+    run_kanban()
 
 
 if __name__ == "__main__":
