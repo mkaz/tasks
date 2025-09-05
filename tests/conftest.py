@@ -10,20 +10,19 @@ from tasks.dbactions import create_schema
 def temp_db():
     """Create a temporary database for testing."""
     # Create a temporary file that will be used as the SQLite DB
-    fd, path = tempfile.mkstemp(suffix=".db")
-    os.close(fd)
+    with tempfile.NamedTemporaryFile() as tf:
+        path = tf.name
 
-    # Connect to the DB and create the schema
-    conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    create_schema(conn)  # Use the application's schema creation function
-    conn.close()
+        # Connect to the DB and create the schema
+        conn = sqlite3.connect(path)
+        conn.row_factory = sqlite3.Row
+        create_schema(conn)  # Use the application's schema creation function
+        conn.close()
 
-    # Return the path to the temporary DB
-    yield path
+        # Return the path to the temporary DB
+        yield path
 
-    # Clean up - remove the temporary file
-    Path(path).unlink()
+    # Temp file auto cleaned up
 
 
 @pytest.fixture
