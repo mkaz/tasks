@@ -1,12 +1,15 @@
 # Tasks
 
-A simple task management tool with an interactive kanban board and command-line interface.
+A simple task management tool with an interactive TUI kanban board and command-line interface.
+
+**Note:** This is just a hobby project for personal use, I do not aim to keep compatibility between versions or support in any way. Feel free to use, fork, learn from, but don't be surprised if things break things over time. All in the name of learning, experiments, and play.
+
 
 ## Data Storage
 
 Data is stored in a SQLite database.
 
--   Add Schema info
+-   See [CLAUDE.md](CLAUDE.md) for schema and additional info
 
 ## Install
 
@@ -17,8 +20,6 @@ python3 -m pip install git+https://github.com/mkaz/tasks
 ```
 
 ## Usage
-
-### Interactive Kanban Board (Primary Interface)
 
 Run tasks without any arguments to launch the interactive kanban board:
 
@@ -81,7 +82,5 @@ SQLite is a common database format available on all platforms and saves to a sin
 ### Contributions and License
 
 Tasks is open source and free to use, modify, and distribute. It is licensed under the <a rel="license" href="https://opensource.org/licenses/MIT">MIT License</a>.
-
-This is just a hobby project, if you have any feedback or contributions feel free to use GitHub issues to submit them.
 
 An [mkaz](https://mkaz.blog/) contrivance.

@@ -1,6 +1,6 @@
 [project]
 name = "tasks"
-version = "2.3.0"
+version = "3.0.0"
 description = "A simple command-line task list"
 authors = [
     {name = "Marcus Kazmierczak", email = "marcus@mkaz.com"}
@@ -16,11 +16,10 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Utilities",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "appdirs>=1.4",
     "rich>=13.3",
-    "prompt-toolkit>=3.0.50",
     "textual>=0.41.0",
 ]
 
@@ -46,4 +45,4 @@ testpaths = [
 ]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
