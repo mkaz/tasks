@@ -138,15 +138,18 @@ def init_args(skip_local=False) -> Dict:
 
     # Handle command detection:
     # - No args or help: run kanban (default)
-    # - First arg is not a known command: treat as task addition
+    # - First arg is not a known command: show error
     # - Otherwise: run the specified command
     if not ("-h" in args_for_main_parser or "--help" in args_for_main_parser):
         if not args_for_main_parser:
             # No arguments, launch kanban TUI (default behavior)
             pass  # Will be handled by None case in command handlers
         elif args_for_main_parser[0] not in subparsers.choices:
-            # First arg is not a command, treat as task addition
-            args_for_main_parser.insert(0, "add")
+            # First arg is not a command, show error and exit
+            print(f"Error: Unknown command '{args_for_main_parser[0]}'")
+            print("Use 'tasks add \"your task\"' to add a new task.")
+            print("Run 'tasks -h' for available commands.")
+            sys.exit(1)
 
     parsed_ns = parser.parse_args(args_for_main_parser)
     parsed_args = vars(parsed_ns)
