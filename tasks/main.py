@@ -7,9 +7,7 @@ A simple command-line task list.
 import sqlite3
 import sys
 from pathlib import Path
-from prompt_toolkit import prompt
 from typing import Optional
-import webbrowser
 
 # local
 import tasks.dbactions as db
@@ -88,17 +86,6 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
         tasks = db.get_tasks(conn)
         reports.show_tasks(tasks)
 
-
-def input_prefill(prompt_str: str, text: Optional[str]) -> str:
-    """Prefill input with existing text."""
-    try:
-        # Convert None to empty string to avoid length errors
-        default_text = "" if text is None else text
-        result = prompt(prompt_str, default=default_text, auto_suggest=None)
-        return result
-    except (KeyboardInterrupt, EOFError):
-        print("\nCancelled")
-        sys.exit(1)
 
 
 

@@ -496,24 +496,6 @@ class KanbanBoard(App):
         except Exception as e:
             self.notify(f"Error moving task: {e}", severity="error")
 
-    def action_move_right(self) -> None:
-        """Move selected task right (Later -> Now -> Done)."""
-        task = self.get_current_task()
-        if not task:
-            return
-
-        try:
-            if task.state == "Later":
-                db.set_task_state(self.conn, task.id, "Now")
-                self.notify(f"Moved task #{task.id} to Now")
-            elif task.state == "Now":
-                task.mark_done(self.conn)
-                self.notify(f"Completed task #{task.id}")
-
-            self.refresh_all_tasks()
-
-        except Exception as e:
-            self.notify(f"Error moving task: {e}", severity="error")
 
     def action_slide_right(self) -> None:
         """Slide task right: Later -> Now -> Done -> Archive."""
@@ -663,23 +645,6 @@ class KanbanBoard(App):
         except Exception as e:
             self.notify(f"Error undoing action: {e}", severity="error")
 
-    def action_archive_done(self) -> None:
-        """Archive all completed tasks."""
-        try:
-            cur = self.conn.cursor()
-            cur.execute("""
-                UPDATE tasks
-                SET state = 'Archive'
-                WHERE dt_completed > 0 AND (state != 'Archive' OR state IS NULL)
-            """)
-            archived_count = cur.rowcount
-            self.conn.commit()
-
-            self.notify(f"Archived {archived_count} completed tasks")
-            self.refresh_all_tasks()
-
-        except Exception as e:
-            self.notify(f"Error archiving tasks: {e}", severity="error")
 
     def action_switch_board(self) -> None:
         """Show board switcher modal."""
