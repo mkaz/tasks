@@ -80,6 +80,80 @@ class EditModal(ModalScreen):
         self.dismiss(None)
 
 
+class BoardSwitcherModal(ModalScreen):
+    """Modal screen for switching between boards."""
+
+    BINDINGS = [
+        Binding("escape", "close", "Close"),
+    ]
+
+    def __init__(self, boards: List[dict], active_board_id: int):
+        super().__init__()
+        self.boards = boards
+        self.active_board_id = active_board_id
+
+    def compose(self) -> ComposeResult:
+        with Grid(id="board_modal"):
+            yield Static("Switch Board", id="board_title")
+            yield ListView(id="board_list")
+
+    def on_mount(self) -> None:
+        """Populate the board list after mounting."""
+        board_list = self.query_one("#board_list", ListView)
+        
+        # Add existing boards
+        for board in self.boards:
+            is_active = "⭐ " if board['id'] == self.active_board_id else "   "
+            board_item = ListItem(Static(f"{is_active}{board['title']}"))
+            board_item.board_id = board['id']  # Store board_id on the item
+            board_list.append(board_item)
+        
+        # Add "Create New Board" option
+        create_item = ListItem(Static("➕ Create New Board"))
+        create_item.board_id = "create_new"  # Special marker for create action
+        board_list.append(create_item)
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        """Handle board selection."""
+        if hasattr(event.item, 'board_id'):
+            if event.item.board_id == "create_new":
+                # Show input for new board name
+                self.dismiss({"action": "create_new"})
+            else:
+                # Switch to selected board
+                self.dismiss({"action": "switch", "board_id": event.item.board_id})
+
+    def action_close(self) -> None:
+        """Close the modal screen."""
+        self.dismiss(None)
+
+
+class CreateBoardModal(ModalScreen):
+    """Modal screen for creating a new board."""
+
+    BINDINGS = [
+        Binding("escape", "close", "Close"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        with Grid(id="create_board_modal"):
+            yield Static("Create New Board", id="create_board_title")
+            yield Input(placeholder="Enter board name...", id="board_name_input")
+            with Horizontal(id="create_board_buttons"):
+                yield Button("Create", variant="primary", id="create_board_button")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        board_name_input = self.query_one("#board_name_input", Input)
+        if board_name_input.value.strip():
+            self.dismiss({"board_name": board_name_input.value.strip()})
+        else:
+            self.app.notify("Board name cannot be empty", severity="error")
+
+    def action_close(self) -> None:
+        """Close the modal screen."""
+        self.dismiss(None)
+
+
 class TaskListItem(ListItem):
     """Custom list item that holds a task."""
 
@@ -149,11 +223,11 @@ class KanbanBoard(App):
     """Kanban board TUI application."""
 
     CSS = """
-    AddModal, EditModal {
+    AddModal, EditModal, BoardSwitcherModal, CreateBoardModal {
         align: center middle;
     }
 
-    #add_modal, #edit_modal {
+    #add_modal, #edit_modal, #create_board_modal {
         grid-size: 2;
         grid-gutter: 1 2;
         grid-rows: auto 3 3 auto;
@@ -164,22 +238,44 @@ class KanbanBoard(App):
         background: $surface;
     }
 
-    #add_title, #edit_title {
+    #board_modal {
+        grid-size: 1;
+        grid-gutter: 1 2;
+        grid-rows: auto 1fr;
+        padding: 0 1;
+        width: 60w;
+        height: 20;
+        border: thick $primary 80%;
+        background: $surface;
+    }
+
+    #add_title, #edit_title, #board_title, #create_board_title {
         column-span: 2;
         text-align: center;
         width: 100%;
     }
 
-    #task_input, #url_input {
+    #board_title {
+        column-span: 1;
+        text-align: center;
+        width: 100%;
+    }
+
+    #task_input, #url_input, #board_name_input {
         column-span: 2;
         width: 100%;
         height: 3;
     }
 
-    #add_buttons, #edit_buttons {
+    #add_buttons, #edit_buttons, #create_board_buttons {
         column-span: 2;
         width: 100%;
         content-align: center middle;
+    }
+
+    #board_list {
+        height: 1fr;
+        border: solid $primary;
     }
 
     .column-header {
@@ -216,6 +312,7 @@ class KanbanBoard(App):
         Binding("-", "decrease_priority", ""),
         Binding("e", "edit_task", "Edit"),
         Binding("u", "undo", "Undo"),
+        Binding("b", "switch_board", "Switch Board"),
     ]
 
     def __init__(self):
@@ -224,6 +321,8 @@ class KanbanBoard(App):
         self.current_focus_column = 0  # 0=Later, 1=Now, 2=Done
         self.columns = []
         self.last_action: Optional[tuple] = None
+        self.current_board_id: Optional[int] = None
+        self.current_board_title: str = "General"
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -241,6 +340,10 @@ class KanbanBoard(App):
 
         yield Footer()
 
+    def update_title(self) -> None:
+        """Update the app title with the current board name."""
+        self.title = f"Tasks - {self.current_board_title}"
+
     def on_mount(self) -> None:
         """Initialize database connection and load tasks."""
         try:
@@ -255,6 +358,12 @@ class KanbanBoard(App):
             # Ensure Archive state exists in schema
             self.ensure_archive_state()
 
+            # Load the active board
+            self.load_active_board()
+
+            # Update the title with board name
+            self.update_title()
+
             self.refresh_all_tasks()
 
             # Focus the Now column initially
@@ -262,6 +371,17 @@ class KanbanBoard(App):
 
         except Exception as e:
             self.notify(f"Database error: {e}", severity="error")
+
+    def load_active_board(self) -> None:
+        """Load the currently active board."""
+        active_board = db.get_active_board(self.conn)
+        if active_board:
+            self.current_board_id = active_board['id']
+            self.current_board_title = active_board['title']
+        else:
+            # Fallback to default board
+            self.current_board_id = 1
+            self.current_board_title = "General"
 
     def ensure_archive_state(self) -> None:
         """Ensure the database supports Archive state."""
@@ -277,17 +397,26 @@ class KanbanBoard(App):
     def refresh_all_tasks(self) -> None:
         """Refresh tasks in all columns."""
         try:
-            # Get tasks by state
-            later_tasks = db.get_tasks_by_state(self.conn, "Later")
-            now_tasks = db.get_tasks_by_state(self.conn, "Now")
+            # Get tasks by state for current board
+            later_tasks = db.get_tasks_by_state(self.conn, "Later", self.current_board_id)
+            now_tasks = db.get_tasks_by_state(self.conn, "Now", self.current_board_id)
 
-            # Get completed tasks (not archived)
+            # Get completed tasks (not archived) for current board
             cur = self.conn.cursor()
-            cur.execute("""
-                SELECT * FROM tasks
-                WHERE dt_completed > 0 AND (state != 'Archive' OR state IS NULL)
-                ORDER BY dt_completed DESC
-            """)
+            if self.current_board_id:
+                cur.execute("""
+                    SELECT * FROM tasks
+                    WHERE dt_completed > 0 
+                        AND (state != 'Archive' OR state IS NULL)
+                        AND board_id = ?
+                    ORDER BY dt_completed DESC
+                """, [self.current_board_id])
+            else:
+                cur.execute("""
+                    SELECT * FROM tasks
+                    WHERE dt_completed > 0 AND (state != 'Archive' OR state IS NULL)
+                    ORDER BY dt_completed DESC
+                """)
             done_rows = cur.fetchall()
             done_tasks = [TaskModel(**dict(row)) for row in done_rows]
 
@@ -317,7 +446,10 @@ class KanbanBoard(App):
                     if result["url"] and result["url"].strip():
                         task_entry = f"{task_entry} {result['url']}"
 
-                    args = {"task_entry": task_entry}
+                    args = {
+                        "task_entry": task_entry,
+                        "board_id": self.current_board_id
+                    }
                     task_id = TaskModel.create(self.conn, args)
                     if task_id:
                         db.set_task_state(self.conn, task_id, target_state)
@@ -548,6 +680,58 @@ class KanbanBoard(App):
 
         except Exception as e:
             self.notify(f"Error archiving tasks: {e}", severity="error")
+
+    def action_switch_board(self) -> None:
+        """Show board switcher modal."""
+        try:
+            boards = db.get_boards(self.conn)
+            if not boards:
+                self.notify("No boards found", severity="error")
+                return
+
+            def handle_board_action(result):
+                if result:
+                    if result["action"] == "switch":
+                        self.switch_to_board(result["board_id"])
+                    elif result["action"] == "create_new":
+                        self.show_create_board_modal()
+
+            self.push_screen(
+                BoardSwitcherModal(boards, self.current_board_id), 
+                handle_board_action
+            )
+        except Exception as e:
+            self.notify(f"Error loading boards: {e}", severity="error")
+
+    def switch_to_board(self, board_id: int) -> None:
+        """Switch to the specified board."""
+        try:
+            if db.set_active_board(self.conn, board_id):
+                # Reload active board
+                self.load_active_board()
+                self.update_title()
+                self.refresh_all_tasks()
+                self.notify(f"Switched to board: {self.current_board_title}")
+            else:
+                self.notify("Failed to switch board", severity="error")
+        except Exception as e:
+            self.notify(f"Error switching board: {e}", severity="error")
+
+    def show_create_board_modal(self) -> None:
+        """Show modal to create a new board."""
+        def handle_create_board(result):
+            if result and result.get("board_name"):
+                try:
+                    board_id = db.create_board(self.conn, result["board_name"])
+                    if board_id:
+                        self.switch_to_board(board_id)
+                        self.notify(f"Created board: {result['board_name']}")
+                    else:
+                        self.notify("Failed to create board", severity="error")
+                except Exception as e:
+                    self.notify(f"Error creating board: {e}", severity="error")
+
+        self.push_screen(CreateBoardModal(), handle_create_board)
 
     def on_unmount(self) -> None:
         """Clean up database connection."""

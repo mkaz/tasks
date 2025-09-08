@@ -13,17 +13,19 @@ class Task:
     dt_created: str
     dt_completed: str
     url: Optional[str] = None
+    board_id: int = 1
 
     @staticmethod
     def create(conn: Connection, args: dict) -> Optional[int]:
         """Creates a new task in the database and returns its ID."""
         entry_text = args["task_entry"]
         task_text, url = parse_entry_text(entry_text)
+        board_id = args.get("board_id", 1)  # Default to board 1 if not specified
 
         cur = conn.cursor()
-        sql = "INSERT INTO tasks (task, url) VALUES (?, ?)"
+        sql = "INSERT INTO tasks (task, url, board_id) VALUES (?, ?, ?)"
         try:
-            cur.execute(sql, (task_text, url))
+            cur.execute(sql, (task_text, url, board_id))
             conn.commit()
             return cur.lastrowid
         except Exception:

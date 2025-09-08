@@ -46,8 +46,6 @@ def main(skip_local=False) -> None:
         # Command handler mapping
         command_handlers = {
             "add": handle_add,
-            "del": handle_del,
-            "do": handle_do,
             "show": handle_show,
             "migrate": lambda c, a: db.migrate_schema(c),
             None: handle_kanban,
@@ -72,30 +70,6 @@ def handle_add(conn: sqlite3.Connection, args: dict) -> None:
         print(f"Created Task #{task_id}")
     else:
         print("Error: Could not create task.")
-
-
-def handle_del(conn: sqlite3.Connection, args: dict) -> None:
-    """Handle the delete command."""
-    for task_id in args["task_ids"]:
-        task = db.get_task(conn, task_id)
-        if task:
-            task.delete(conn)
-            print(f"Task #{task_id} deleted.")
-        else:
-            print(f"> Task #{task_id} not found for deletion.")
-
-
-def handle_do(conn: sqlite3.Connection, args: dict) -> None:
-    """Handle the do command."""
-    for task_id in args["task_ids"]:
-        task = db.get_task(conn, task_id)
-        if task:
-            task.mark_done(conn)
-            print(f"Task #{task_id} marked done.")
-        else:
-            print(f"> Task #{task_id} not found to mark as done.")
-
-
 
 
 def handle_show(conn: sqlite3.Connection, args: dict) -> None:

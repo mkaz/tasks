@@ -11,8 +11,6 @@ from appdirs import AppDirs
 # Use a dictionary for easier management and help text generation
 COMMANDS = {
     "add": "Add a new task.",
-    "del": "Delete one or more tasks by ID.",
-    "do": "Mark one or more tasks as done by ID.",
     "show": "Show tasks (default command). Filter by status or search term.",
     "migrate": "Migrate the database schema.",
 }
@@ -86,21 +84,6 @@ def init_args(skip_local=False) -> Dict:
     parser_add = subparsers.add_parser("add", help=COMMANDS["add"])
     parser_add.add_argument(
         "task_entry", nargs="+", help="The text for the task to add."
-    )
-
-    # Del command
-    parser_del = subparsers.add_parser("del", help=COMMANDS["del"])
-    parser_del.add_argument(
-        "task_ids", nargs="+", type=int, help="The ID(s) of the task(s) to delete."
-    )
-
-    # Do command
-    parser_do = subparsers.add_parser("do", help=COMMANDS["do"])
-    parser_do.add_argument(
-        "task_ids",
-        nargs="+",
-        type=int,
-        help="The ID(s) of the task(s) to mark as done.",
     )
 
 
