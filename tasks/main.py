@@ -108,7 +108,7 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
         task = db.get_task(conn, args["task_id"])
         reports.show_task_details(task)
     elif args.get("now"):
-        tasks = db.get_tasks_by_mode(conn, "Now")
+        tasks = db.get_tasks_by_state(conn, "Now")
         reports.show_tasks(tasks)
     else:
         tasks = db.get_tasks(conn)

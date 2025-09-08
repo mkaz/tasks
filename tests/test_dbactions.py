@@ -8,7 +8,7 @@ from tasks.dbactions import (
     get_tasks_com,
     increase_priority,
     decrease_priority,
-    set_task_mode
+    set_task_state
 )
 
 def test_create_schema(temp_db):
@@ -121,23 +121,23 @@ def test_decrease_priority(sample_tasks):
     boundary_priority = cur.fetchone()["priority"]
     assert boundary_priority == 4  # Can't go above 4
 
-def test_set_task_mode(sample_tasks):
-    """Test setting a task's mode."""
+def test_set_task_state(sample_tasks):
+    """Test setting a task's state."""
     # Get a task
     cur = sample_tasks.cursor()
     cur.execute("SELECT id FROM tasks LIMIT 1")
     task_id = cur.fetchone()["id"]
 
-    # Set to Now mode
-    set_task_mode(sample_tasks, task_id, "Now")
+    # Set to Now state
+    set_task_state(sample_tasks, task_id, "Now")
 
-    # Check mode was set
-    cur.execute("SELECT mode FROM tasks WHERE id = ?", [task_id])
-    assert cur.fetchone()["mode"] == "Now"
+    # Check state was set
+    cur.execute("SELECT state FROM tasks WHERE id = ?", [task_id])
+    assert cur.fetchone()["state"] == "Now"
 
-    # Set to Later mode
-    set_task_mode(sample_tasks, task_id, "Later")
+    # Set to Later state
+    set_task_state(sample_tasks, task_id, "Later")
 
-    # Check mode was set
-    cur.execute("SELECT mode FROM tasks WHERE id = ?", [task_id])
-    assert cur.fetchone()["mode"] == "Later"
+    # Check state was set
+    cur.execute("SELECT state FROM tasks WHERE id = ?", [task_id])
+    assert cur.fetchone()["state"] == "Later"

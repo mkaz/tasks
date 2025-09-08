@@ -17,7 +17,7 @@
     - Create new `migrate` command
     - Build schema based on database structure
 
-- Change A,B,C modes to simpler Now / Later
+- Change A,B,C modes to simpler Now / Later states
 
 
 ## v2.1.3 - 2025-05-07

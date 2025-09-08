@@ -9,7 +9,7 @@ class Task:
     id: int
     task: str
     priority: int
-    mode: str
+    state: str
     dt_created: str
     dt_completed: str
     url: Optional[str] = None

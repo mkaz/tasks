@@ -113,63 +113,7 @@ def test_delete_task(mock_env_db_path, monkeypatch):
     conn.close()
 
 
-def test_priority_change(mock_env_db_path, monkeypatch):
-    """Test changing task priority."""
-    # First add a task with known priority
-    conn = sqlite3.connect(mock_env_db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO tasks (task, priority) VALUES (?, ?)", ["Priority task", 2]
-    )
-    task_id = cur.lastrowid
-    conn.commit()
-    conn.close()  # Close the connection before running the CLI command
-
-    # Run the increase priority command
-    test_args = ["tasks", "^", str(task_id)]
-    output = StringIO()
-    with patch.object(sys, "argv", test_args), patch("sys.stdout", output):
-        main(skip_local=True)
-
-    # Verify success message
-    assert f"Task #{task_id} priority increased" in output.getvalue()
-
-    # Check database for updated priority
-    conn = sqlite3.connect(mock_env_db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT priority FROM tasks WHERE id = ?", [task_id])
-    result = cur.fetchone()
-    assert result["priority"] == 1  # Should be one higher (lower number)
-    conn.close()
+# Priority commands have been removed from CLI - priority changes are done through TUI only
 
 
-def test_mode_change(mock_env_db_path, monkeypatch):
-    """Test changing task mode."""
-    # First add a task with known mode
-    conn = sqlite3.connect(mock_env_db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("INSERT INTO tasks (task, mode) VALUES (?, ?)", ["Mode task", "Now"])
-    task_id = cur.lastrowid
-    conn.commit()
-    conn.close()  # Close the connection before running the CLI command
-
-    # Run the mode change command with patched stdout
-    test_args = ["tasks", "mode", str(task_id), "Later"]
-    output = StringIO()
-    with patch.object(sys, "argv", test_args), patch("sys.stdout", output):
-        main(skip_local=True)
-
-    # Verify success message
-    assert f"Task #{task_id} mode set to Later" in output.getvalue()
-
-    # Check database to make sure it's updated
-    conn = sqlite3.connect(mock_env_db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT mode FROM tasks WHERE id = ?", [task_id])
-    result = cur.fetchone()
-    assert result["mode"] == "Later"
-    conn.close()
+# Mode command has been removed from CLI - state changes are done through TUI only

@@ -252,8 +252,8 @@ class KanbanBoard(App):
             if not dbfile.is_file():
                 db.create_schema(self.conn)
 
-            # Ensure Archive mode exists in schema
-            self.ensure_archive_mode()
+            # Ensure Archive state exists in schema
+            self.ensure_archive_state()
 
             self.refresh_all_tasks()
 
@@ -263,13 +263,13 @@ class KanbanBoard(App):
         except Exception as e:
             self.notify(f"Database error: {e}", severity="error")
 
-    def ensure_archive_mode(self) -> None:
-        """Ensure the database supports Archive mode."""
+    def ensure_archive_state(self) -> None:
+        """Ensure the database supports Archive state."""
         try:
-            # Check if we have any tasks with Archive mode
+            # Check if we have any tasks with Archive state
             cur = self.conn.cursor()
-            cur.execute("SELECT COUNT(*) FROM tasks WHERE mode = 'Archive'")
-            # This will work if the mode column exists and can handle 'Archive'
+            cur.execute("SELECT COUNT(*) FROM tasks WHERE state = 'Archive'")
+            # This will work if the state column exists and can handle 'Archive'
         except sqlite3.Error:
             # If there's an issue, run migration to ensure proper schema
             db.migrate_schema(self.conn)
@@ -277,15 +277,15 @@ class KanbanBoard(App):
     def refresh_all_tasks(self) -> None:
         """Refresh tasks in all columns."""
         try:
-            # Get tasks by mode
-            later_tasks = db.get_tasks_by_mode(self.conn, "Later")
-            now_tasks = db.get_tasks_by_mode(self.conn, "Now")
+            # Get tasks by state
+            later_tasks = db.get_tasks_by_state(self.conn, "Later")
+            now_tasks = db.get_tasks_by_state(self.conn, "Now")
 
             # Get completed tasks (not archived)
             cur = self.conn.cursor()
             cur.execute("""
                 SELECT * FROM tasks
-                WHERE dt_completed > 0 AND (mode != 'Archive' OR mode IS NULL)
+                WHERE dt_completed > 0 AND (state != 'Archive' OR state IS NULL)
                 ORDER BY dt_completed DESC
             """)
             done_rows = cur.fetchall()
@@ -305,10 +305,10 @@ class KanbanBoard(App):
 
     def action_add_task(self) -> None:
         """Show input for adding a new task."""
-        target_mode = "Now"
+        target_state = "Now"
         if self.focused and isinstance(self.focused, TaskListView):
             if self.focused.id == "list_later":
-                target_mode = "Later"
+                target_state = "Later"
 
         def handle_add_task(result):
             if result and result["task"]:
@@ -320,8 +320,8 @@ class KanbanBoard(App):
                     args = {"task_entry": task_entry}
                     task_id = TaskModel.create(self.conn, args)
                     if task_id:
-                        db.set_task_mode(self.conn, task_id, target_mode)
-                        self.notify(f"Created Task #{task_id} in {target_mode}")
+                        db.set_task_state(self.conn, task_id, target_state)
+                        self.notify(f"Created Task #{task_id} in {target_state}")
                         self.refresh_all_tasks()
                     else:
                         self.notify("Failed to create task", severity="error")
@@ -348,15 +348,15 @@ class KanbanBoard(App):
             return
 
         try:
-            if task.mode == "Now":
-                db.set_task_mode(self.conn, task.id, "Later")
+            if task.state == "Now":
+                db.set_task_state(self.conn, task.id, "Later")
                 self.notify(f"Moved task #{task.id} to Later")
             elif task.dt_completed and task.dt_completed != "0":
                 # Reopen completed task and move to Now
                 cur = self.conn.cursor()
                 cur.execute("UPDATE tasks SET dt_completed = 0 WHERE id = ?", [task.id])
                 self.conn.commit()
-                db.set_task_mode(self.conn, task.id, "Now")
+                db.set_task_state(self.conn, task.id, "Now")
                 self.notify(f"Reopened task #{task.id} and moved to Now")
 
             self.refresh_all_tasks()
@@ -371,10 +371,10 @@ class KanbanBoard(App):
             return
 
         try:
-            if task.mode == "Later":
-                db.set_task_mode(self.conn, task.id, "Now")
+            if task.state == "Later":
+                db.set_task_state(self.conn, task.id, "Now")
                 self.notify(f"Moved task #{task.id} to Now")
-            elif task.mode == "Now":
+            elif task.state == "Now":
                 task.mark_done(self.conn)
                 self.notify(f"Completed task #{task.id}")
 
@@ -390,15 +390,15 @@ class KanbanBoard(App):
             return
 
         try:
-            if task.mode == "Later":
-                db.set_task_mode(self.conn, task.id, "Now")
+            if task.state == "Later":
+                db.set_task_state(self.conn, task.id, "Now")
                 self.notify(f"Moved task #{task.id} to Now")
-            elif task.mode == "Now":
+            elif task.state == "Now":
                 task.mark_done(self.conn)
                 self.notify(f"Completed task #{task.id}")
             elif task.dt_completed and task.dt_completed != "0":
                 # Task is in Done column, archive it
-                db.set_task_mode(self.conn, task.id, "Archive")
+                db.set_task_state(self.conn, task.id, "Archive")
                 self.notify(f"Archived task #{task.id}")
 
             self.refresh_all_tasks()
@@ -509,7 +509,7 @@ class KanbanBoard(App):
                 cur = self.conn.cursor()
                 cur.execute(
                     """
-                    INSERT INTO tasks (id, task, url, priority, dt_created, dt_completed, mode)
+                    INSERT INTO tasks (id, task, url, priority, dt_created, dt_completed, state)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
@@ -519,7 +519,7 @@ class KanbanBoard(App):
                         task_to_restore.priority,
                         task_to_restore.dt_created,
                         task_to_restore.dt_completed,
-                        task_to_restore.mode,
+                        task_to_restore.state,
                     ),
                 )
                 self.conn.commit()
@@ -537,8 +537,8 @@ class KanbanBoard(App):
             cur = self.conn.cursor()
             cur.execute("""
                 UPDATE tasks
-                SET mode = 'Archive'
-                WHERE dt_completed > 0 AND (mode != 'Archive' OR mode IS NULL)
+                SET state = 'Archive'
+                WHERE dt_completed > 0 AND (state != 'Archive' OR state IS NULL)
             """)
             archived_count = cur.rowcount
             self.conn.commit()

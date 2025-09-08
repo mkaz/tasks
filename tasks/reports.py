@@ -18,24 +18,24 @@ def get_priority_style(priority: int) -> str:
 def show_tasks(tasks: List[Task]):
     console = Console()
 
-    # Create a single table with two columns for modes
+    # Create a single table with two columns for states
     table = Table(show_header=True, padding=(0, 1), expand=True, width=80)
     table.add_column(" Now", justify="left", ratio=1)
     table.add_column(" Later", justify="left", ratio=1)
 
-    # Group tasks by mode
+    # Group tasks by state
     now_tasks = []
     later_tasks = []
 
     for task in tasks:
-        mode = task.mode
+        state = task.state
         priority_style = get_priority_style(task.priority)
         url_indicator = " 🔗" if task.url else ""
         formatted_task = f"{task.id:>3} [{priority_style}]{task.task}{url_indicator}[/{priority_style}]"
 
-        if mode == "Now":
+        if state == "Now":
             now_tasks.append(formatted_task)
-        elif mode == "Later":
+        elif state == "Later":
             later_tasks.append(formatted_task)
 
     # Find the maximum length to determine number of rows
@@ -61,7 +61,7 @@ def show_task_details(task: Task):
     print(f"Task ID  : {task.id}")
     print(f"Task     : {task.task}")
     print(f"Priority : {task.priority}")
-    print(f"Mode     : {task.mode}")
+    print(f"State    : {task.state}")
     print(f"URL      : {task.url}")
     print(f"Completed: {task.dt_completed}")
     print(f"Created  : {task.dt_created}")
