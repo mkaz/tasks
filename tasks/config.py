@@ -13,14 +13,8 @@ COMMANDS = {
     "add": "Add a new task.",
     "del": "Delete one or more tasks by ID.",
     "do": "Mark one or more tasks as done by ID.",
-    "edit": "Edit an existing task by ID.",
     "show": "Show tasks (default command). Filter by status or search term.",
-    "^": "Increase priority of one or more tasks by ID.",
-    "v": "Decrease priority of one or more tasks by ID.",
-    "mode": "Set the mode (A, B, C) for a task.",
-    "open": "Open the URL associated with a task by ID.",
     "migrate": "Migrate the database schema.",
-    "kanban": "Open the kanban board TUI.",
 }
 
 __version__ = importlib.metadata.version(__package__)
@@ -109,9 +103,6 @@ def init_args(skip_local=False) -> Dict:
         help="The ID(s) of the task(s) to mark as done.",
     )
 
-    # Edit command
-    parser_edit = subparsers.add_parser("edit", help=COMMANDS["edit"])
-    parser_edit.add_argument("task_id", type=int, help="The ID of the task to edit.")
 
     # Show command - duplicate the arguments from main parser
     parser_show = subparsers.add_parser("show", help=COMMANDS["show"])
@@ -138,56 +129,24 @@ def init_args(skip_local=False) -> Dict:
         help="Task ID to show details for.",
     )
 
-    # Priority Up command
-    parser_prio_up = subparsers.add_parser("^", help=COMMANDS["^"])
-    parser_prio_up.add_argument(
-        "task_ids",
-        nargs="+",
-        type=int,
-        help="The ID(s) of the task(s) to increase priority for.",
-    )
-
-    # Priority Down command
-    parser_prio_down = subparsers.add_parser("v", help=COMMANDS["v"])
-    parser_prio_down.add_argument(
-        "task_ids",
-        nargs="+",
-        type=int,
-        help="The ID(s) of the task(s) to decrease priority for.",
-    )
-
-    # Mode command
-    parser_mode = subparsers.add_parser("mode", help=COMMANDS["mode"])
-    parser_mode.add_argument(
-        "task_id", type=int, help="The ID of the task to set the mode for."
-    )
-    parser_mode.add_argument(
-        "mode_value", choices=["Now", "Later"], help="The mode to set (Now, Later)."
-    )
-
-    # Open command
-    parser_open = subparsers.add_parser("open", help=COMMANDS["open"])
-    parser_open.add_argument(
-        "task_id", type=int, help="The ID of the task to open the URL for."
-    )
 
     # Migrate command
     subparsers.add_parser("migrate", help=COMMANDS["migrate"])
-    
-    # Kanban command
-    subparsers.add_parser("kanban", help=COMMANDS["kanban"])
 
     # Parse the arguments
     args_for_main_parser = list(remaining)
 
-    # Prepend 'show' if no command is given or if the first arg is not a command
-    # and not requesting help for the main parser.
+    # Handle command detection:
+    # - No args or help: run kanban (default)
+    # - First arg is not a known command: treat as task addition
+    # - Otherwise: run the specified command
     if not ("-h" in args_for_main_parser or "--help" in args_for_main_parser):
-        if (
-            not args_for_main_parser
-            or args_for_main_parser[0] not in subparsers.choices
-        ):
-            args_for_main_parser.insert(0, "show")
+        if not args_for_main_parser:
+            # No arguments, launch kanban TUI (default behavior)
+            pass  # Will be handled by None case in command handlers
+        elif args_for_main_parser[0] not in subparsers.choices:
+            # First arg is not a command, treat as task addition
+            args_for_main_parser.insert(0, "add")
 
     parsed_ns = parser.parse_args(args_for_main_parser)
     parsed_args = vars(parsed_ns)

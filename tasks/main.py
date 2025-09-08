@@ -48,15 +48,9 @@ def main(skip_local=False) -> None:
             "add": handle_add,
             "del": handle_del,
             "do": handle_do,
-            "edit": handle_edit,
             "show": handle_show,
-            "^": lambda c, a: handle_priority(c, a, True),
-            "v": lambda c, a: handle_priority(c, a, False),
-            "mode": handle_mode,
-            "open": handle_open,
             "migrate": lambda c, a: db.migrate_schema(c),
-            "kanban": handle_kanban,
-            None: handle_show,
+            None: handle_kanban,
         }
 
         handler = command_handlers.get(command)
@@ -102,27 +96,6 @@ def handle_do(conn: sqlite3.Connection, args: dict) -> None:
             print(f"> Task #{task_id} not found to mark as done.")
 
 
-def handle_edit(conn: sqlite3.Connection, args: dict) -> None:
-    """Handle the edit command."""
-    task = db.get_task(conn, args["task_id"])
-    if not task:
-        print(f"> Task #{args['task_id']} not found")
-        return
-
-    new_text = input_prefill(
-        f"Update Task Description for #{args['task_id']}: ", task.task
-    )
-
-    current_url = task.url
-    new_url_input = input_prefill(
-        f"Update URL for #{args['task_id']} (current: {current_url}): ",
-        current_url,
-    )
-
-    new_url = new_url_input if new_url_input != "" else None
-
-    task.update_details(conn, new_text, new_url)
-    print(f"Task #{args['task_id']} updated.")
 
 
 def handle_show(conn: sqlite3.Connection, args: dict) -> None:
@@ -154,37 +127,8 @@ def input_prefill(prompt_str: str, text: Optional[str]) -> str:
         sys.exit(1)
 
 
-def handle_priority(conn: sqlite3.Connection, args: dict, increase: bool) -> None:
-    """Handle priority change commands (^ or v)."""
-    for task_id in args["task_ids"]:
-        if increase:
-            db.increase_priority(conn, task_id)
-            print(f"Task #{task_id} priority increased.")
-        else:
-            db.decrease_priority(conn, task_id)
-            print(f"Task #{task_id} priority decreased.")
 
 
-def handle_mode(conn: sqlite3.Connection, args: dict) -> None:
-    """Handle the mode command to set task mode."""
-    try:
-        db.set_task_mode(conn, args["task_id"], args["mode_value"])
-        print(f"Task #{args['task_id']} mode set to {args['mode_value']}")
-    except ValueError as e:
-        print(f"> {e}")
-
-
-def handle_open(conn: sqlite3.Connection, args: dict) -> None:
-    """Handle the open command to open the URL of a task."""
-    task = db.get_task(conn, args["task_id"])
-    if task:
-        if task.url:
-            print(f"Opening URL for Task #{args['task_id']}: {task.url}")
-            webbrowser.open(task.url)
-        else:
-            print(f"> Task #{args['task_id']} has no URL.")
-    else:
-        print(f"> Task #{args['task_id']} not found.")
 
 
 def handle_kanban(conn: sqlite3.Connection, args: dict) -> None:
