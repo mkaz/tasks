@@ -55,65 +55,10 @@ def test_show_tasks(mock_env_db_path, monkeypatch):
     assert "Task to display" in output.getvalue()
 
 
-def test_do_task(mock_env_db_path, monkeypatch):
-    """Test marking a task as done."""
-    # First add a task
-    conn = sqlite3.connect(mock_env_db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Task to complete"])
-    task_id = cur.lastrowid
-    conn.commit()
-    conn.close()  # Close the connection before running the CLI command
-
-    # Run the do command
-    test_args = ["tasks", "do", str(task_id)]
-    output = StringIO()
-    with patch.object(sys, "argv", test_args), patch("sys.stdout", output):
-        main(skip_local=True)
-
-    # Verify success message
-    assert f"Task #{task_id} marked done" in output.getvalue()
-
-    # Check database to make sure it's marked done
-    conn = sqlite3.connect(mock_env_db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT dt_completed FROM tasks WHERE id = ?", [task_id])
-    result = cur.fetchone()
-    assert result["dt_completed"] != 0  # Should have a timestamp
-    conn.close()
 
 
-def test_delete_task(mock_env_db_path, monkeypatch):
-    """Test deleting a task."""
-    # First add a task
-    conn = sqlite3.connect(mock_env_db_path)
-    cur = conn.cursor()
-    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Task to delete"])
-    task_id = cur.lastrowid
-    conn.commit()
-    conn.close()  # Close the connection before running the CLI command
-
-    # Run the delete command
-    test_args = ["tasks", "del", str(task_id)]
-    output = StringIO()
-    with patch.object(sys, "argv", test_args), patch("sys.stdout", output):
-        main(skip_local=True)
-
-    # Verify success message
-    assert f"Task #{task_id} deleted" in output.getvalue()
-
-    # Check database to make sure it's gone
-    conn = sqlite3.connect(mock_env_db_path)
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM tasks WHERE id = ?", [task_id])
-    result = cur.fetchone()
-    assert result is None
-    conn.close()
-
-
-# Priority commands have been removed from CLI - priority changes are done through TUI only
-
-
-# Mode command has been removed from CLI - state changes are done through TUI only
+# The following commands have been removed from CLI and are now TUI-only:
+# - do (mark task as done)  
+# - del (delete task)
+# - priority up/down
+# - mode/state setting
