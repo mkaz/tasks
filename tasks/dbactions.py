@@ -8,10 +8,10 @@ def create_schema(conn: Connection):
     """Create schema. Will not overwrite if exists"""
     cur = conn.cursor()
 
-    # Create boards table
+    # Create projects table
     cur.execute(
         """
-        CREATE TABLE IF NOT EXISTS boards (
+        CREATE TABLE IF NOT EXISTS projects (
             id INTEGER PRIMARY KEY,
             title TEXT NOT NULL,
             is_active BOOLEAN DEFAULT 0,
@@ -27,22 +27,23 @@ def create_schema(conn: Connection):
             id INTEGER PRIMARY KEY,
             task TEXT NOT NULL,
             url TEXT,
+            notes TEXT,
             priority INTEGER DEFAULT 2,
             state TEXT DEFAULT 'Now',
-            board_id INTEGER DEFAULT 1,
+            project_id INTEGER DEFAULT 1,
             dt_completed DATETIME DEFAULT 0,
             dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (board_id) REFERENCES boards (id)
+            FOREIGN KEY (project_id) REFERENCES projects (id)
         )
         """
     )
 
-    # Create default board if no boards exist
-    cur.execute("SELECT COUNT(*) FROM boards")
+    # Create default project if no projects exist
+    cur.execute("SELECT COUNT(*) FROM projects")
     if cur.fetchone()[0] == 0:
         cur.execute(
             """
-            INSERT INTO boards (id, title, is_active)
+            INSERT INTO projects (id, title, is_active)
             VALUES (1, 'General', 1)
             """
         )
@@ -72,45 +73,45 @@ def get_task(conn: Connection, task_id: int) -> Optional[Task]:
     return None
 
 
-def get_tasks(conn: Connection, board_id: Optional[int] = None) -> List[Task]:
+def get_tasks(conn: Connection, project_id: Optional[int] = None) -> List[Task]:
     cur = conn.cursor()
-    if board_id is not None:
-        cur.execute("SELECT * FROM tasks WHERE dt_completed = 0 AND board_id = ? ORDER BY priority, id", [board_id])
+    if project_id is not None:
+        cur.execute("SELECT * FROM tasks WHERE dt_completed = 0 AND project_id = ? ORDER BY priority, id", [project_id])
     else:
-        # Get active board if no board_id specified
-        active_board = get_active_board(conn)
-        if active_board:
-            cur.execute("SELECT * FROM tasks WHERE dt_completed = 0 AND board_id = ? ORDER BY priority, id", [active_board['id']])
+        # Get active project if no project_id specified
+        active_project = get_active_project(conn)
+        if active_project:
+            cur.execute("SELECT * FROM tasks WHERE dt_completed = 0 AND project_id = ? ORDER BY priority, id", [active_project['id']])
         else:
             cur.execute("SELECT * FROM tasks WHERE dt_completed = 0 ORDER BY priority, id")
     rows = cur.fetchall()
     return [Task(**dict(row)) for row in rows]
 
 
-def get_tasks_new(conn: Connection, days: int, board_id: Optional[int] = None) -> List[Task]:
+def get_tasks_new(conn: Connection, days: int, project_id: Optional[int] = None) -> List[Task]:
     cur = conn.cursor()
-    
-    if board_id is not None:
+
+    if project_id is not None:
         sql = f"""
             SELECT * FROM tasks
              WHERE dt_completed = 0
-               AND board_id = ?
+               AND project_id = ?
                AND dt_created >= date('now', '-{days} days')
              ORDER BY priority, id
         """
-        cur.execute(sql, [board_id])
+        cur.execute(sql, [project_id])
     else:
-        # Get active board if no board_id specified
-        active_board = get_active_board(conn)
-        if active_board:
+        # Get active project if no project_id specified
+        active_project = get_active_project(conn)
+        if active_project:
             sql = f"""
                 SELECT * FROM tasks
                  WHERE dt_completed = 0
-                   AND board_id = ?
+                   AND project_id = ?
                    AND dt_created >= date('now', '-{days} days')
                  ORDER BY priority, id
             """
-            cur.execute(sql, [active_board['id']])
+            cur.execute(sql, [active_project['id']])
         else:
             sql = f"""
                 SELECT * FROM tasks
@@ -119,31 +120,31 @@ def get_tasks_new(conn: Connection, days: int, board_id: Optional[int] = None) -
                  ORDER BY priority, id
             """
             cur.execute(sql)
-    
+
     rows = cur.fetchall()
     return [Task(**dict(row)) for row in rows]
 
 
-def get_tasks_com(conn: Connection, days: int, board_id: Optional[int] = None) -> List[Task]:
+def get_tasks_com(conn: Connection, days: int, project_id: Optional[int] = None) -> List[Task]:
     cur = conn.cursor()
     
-    if board_id is not None:
+    if project_id is not None:
         sql = f"""
             SELECT * FROM tasks
              WHERE dt_completed >= date('now', '-{days} days')
-               AND board_id = ?
+               AND project_id = ?
         """
-        cur.execute(sql, [board_id])
+        cur.execute(sql, [project_id])
     else:
-        # Get active board if no board_id specified
-        active_board = get_active_board(conn)
-        if active_board:
+        # Get active board if no project_id specified
+        active_project = get_active_project(conn)
+        if active_project:
             sql = f"""
                 SELECT * FROM tasks
                  WHERE dt_completed >= date('now', '-{days} days')
-                   AND board_id = ?
+                   AND project_id = ?
             """
-            cur.execute(sql, [active_board['id']])
+            cur.execute(sql, [active_project['id']])
         else:
             sql = f"""
                 SELECT * FROM tasks
@@ -193,31 +194,31 @@ def set_task_state(conn: Connection, task_id: int, state: str):
     conn.commit()
 
 
-def get_tasks_by_state(conn: Connection, state: str, board_id: Optional[int] = None) -> List[Task]:
+def get_tasks_by_state(conn: Connection, state: str, project_id: Optional[int] = None) -> List[Task]:
     """Get all tasks for a specific state"""
     cur = conn.cursor()
     
-    if board_id is not None:
+    if project_id is not None:
         sql = """
             SELECT * FROM tasks
             WHERE dt_completed = 0
                 AND state = ?
-                AND board_id = ?
+                AND project_id = ?
             ORDER BY priority, id
         """
-        cur.execute(sql, [state, board_id])
+        cur.execute(sql, [state, project_id])
     else:
-        # Get active board if no board_id specified
-        active_board = get_active_board(conn)
-        if active_board:
+        # Get active board if no project_id specified
+        active_project = get_active_project(conn)
+        if active_project:
             sql = """
                 SELECT * FROM tasks
                 WHERE dt_completed = 0
                     AND state = ?
-                    AND board_id = ?
+                    AND project_id = ?
                 ORDER BY priority, id
             """
-            cur.execute(sql, [state, active_board['id']])
+            cur.execute(sql, [state, active_project['id']])
         else:
             sql = """
                 SELECT * FROM tasks
@@ -240,29 +241,39 @@ def migrate_schema(conn: Connection) -> None:
     cur.execute("DROP TABLE IF EXISTS schema_version")
     conn.commit()
 
-    # Check if boards table exists
+    # Check if projects table exists, or if boards table needs renaming
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'")
+    has_projects_table = cur.fetchone() is not None
+
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='boards'")
     has_boards_table = cur.fetchone() is not None
 
-    # Create boards table if it doesn't exist
-    if not has_boards_table:
-        print("Creating boards table...")
+    # Migrate boards table to projects table if needed
+    if has_boards_table and not has_projects_table:
+        print("Migrating boards table to projects table...")
+        cur.execute("ALTER TABLE boards RENAME TO projects")
+        conn.commit()
+        print("Successfully renamed boards table to projects.")
+
+    # Create projects table if it doesn't exist
+    if not has_projects_table and not has_boards_table:
+        print("Creating projects table...")
         cur.execute("""
-            CREATE TABLE boards (
+            CREATE TABLE projects (
                 id INTEGER PRIMARY KEY,
                 title TEXT NOT NULL,
                 is_active BOOLEAN DEFAULT 0,
                 dt_created DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
-        # Create default board
+
+        # Create default project
         cur.execute("""
-            INSERT INTO boards (id, title, is_active)
+            INSERT INTO projects (id, title, is_active)
             VALUES (1, 'General', 1)
         """)
         conn.commit()
-        print("Created boards table with default 'General' board.")
+        print("Created projects table with default 'General' project.")
 
     # Get current columns in tasks table
     cur.execute("PRAGMA table_info(tasks)")
@@ -270,32 +281,34 @@ def migrate_schema(conn: Connection) -> None:
 
     has_state = any(col[1] == "state" for col in columns)
     has_mode = any(col[1] == "mode" for col in columns)
+    has_project_id = any(col[1] == "project_id" for col in columns)
     has_board_id = any(col[1] == "board_id" for col in columns)
 
-    # Handle mode -> state migration and add board_id
+    # Handle mode -> state migration and add project_id
     if has_mode and not has_state:
-        print("Migrating schema: renaming mode to state and adding board_id...")
+        print("Migrating schema: renaming mode to state and adding project_id...")
         # SQLite doesn't support renaming columns directly, so we need to recreate the table
         cur.execute("ALTER TABLE tasks RENAME TO tasks_old")
         
-        # Create new table with 'state' and 'board_id' columns
+        # Create new table with 'state', 'project_id', and 'notes' columns
         cur.execute("""
             CREATE TABLE tasks (
                 id INTEGER PRIMARY KEY,
                 task TEXT NOT NULL,
                 url TEXT,
+                notes TEXT,
                 priority INTEGER DEFAULT 2,
                 state TEXT DEFAULT 'Now',
-                board_id INTEGER DEFAULT 1,
+                project_id INTEGER DEFAULT 1,
                 dt_completed DATETIME DEFAULT 0,
                 dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (board_id) REFERENCES boards (id)
+                FOREIGN KEY (project_id) REFERENCES projects (id)
             )
         """)
         
-        # Copy data from old table, renaming mode to state and adding board_id
+        # Copy data from old table, renaming mode to state and adding project_id
         cur.execute("""
-            INSERT INTO tasks (id, task, url, priority, state, board_id, dt_completed, dt_created)
+            INSERT INTO tasks (id, task, url, priority, state, project_id, dt_completed, dt_created)
             SELECT id, task, url, priority, mode, 1, dt_completed, dt_created
             FROM tasks_old
         """)
@@ -303,7 +316,7 @@ def migrate_schema(conn: Connection) -> None:
         # Drop old table
         cur.execute("DROP TABLE tasks_old")
         conn.commit()
-        print("Successfully migrated schema with state and board_id columns.")
+        print("Successfully migrated schema with state and project_id columns.")
     
     # Add state column if neither exists (for very old schemas)
     elif not has_state and not has_mode:
@@ -314,12 +327,64 @@ def migrate_schema(conn: Connection) -> None:
         """)
         conn.commit()
 
-    # Add board_id column if missing
-    if not has_board_id:
-        print("Adding board_id column...")
+    # Migrate board_id to project_id if needed
+    if has_board_id and not has_project_id:
+        print("Migrating board_id column to project_id...")
+        # SQLite doesn't support renaming columns directly, so we need to recreate the table
+        cur.execute("ALTER TABLE tasks RENAME TO tasks_old")
+
+        # Get all column info to preserve them
+        cur.execute("PRAGMA table_info(tasks_old)")
+        old_columns = cur.fetchall()
+        has_notes_in_old = any(col[1] == "notes" for col in old_columns)
+        has_url_in_old = any(col[1] == "url" for col in old_columns)
+
+        # Build column list for the new table
+        cur.execute("""
+            CREATE TABLE tasks (
+                id INTEGER PRIMARY KEY,
+                task TEXT NOT NULL,
+                url TEXT,
+                notes TEXT,
+                priority INTEGER DEFAULT 2,
+                state TEXT DEFAULT 'Now',
+                project_id INTEGER DEFAULT 1,
+                dt_completed DATETIME DEFAULT 0,
+                dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (project_id) REFERENCES projects (id)
+            )
+        """)
+
+        # Copy data, renaming board_id to project_id
+        # Build dynamic SELECT based on available columns
+        if has_notes_in_old and has_url_in_old:
+            cur.execute("""
+                INSERT INTO tasks (id, task, url, notes, priority, state, project_id, dt_completed, dt_created)
+                SELECT id, task, url, notes, priority, state, board_id, dt_completed, dt_created
+                FROM tasks_old
+            """)
+        elif has_url_in_old:
+            cur.execute("""
+                INSERT INTO tasks (id, task, url, priority, state, project_id, dt_completed, dt_created)
+                SELECT id, task, url, priority, state, board_id, dt_completed, dt_created
+                FROM tasks_old
+            """)
+        else:
+            cur.execute("""
+                INSERT INTO tasks (id, task, priority, state, project_id, dt_completed, dt_created)
+                SELECT id, task, priority, state, board_id, dt_completed, dt_created
+                FROM tasks_old
+            """)
+
+        cur.execute("DROP TABLE tasks_old")
+        conn.commit()
+        print("Successfully migrated board_id to project_id.")
+    # Add project_id column if missing (and board_id doesn't exist)
+    elif not has_project_id and not has_board_id:
+        print("Adding project_id column...")
         cur.execute("""
             ALTER TABLE tasks
-                ADD COLUMN board_id INTEGER DEFAULT 1
+                ADD COLUMN project_id INTEGER DEFAULT 1
         """)
         conn.commit()
 
@@ -333,12 +398,22 @@ def migrate_schema(conn: Connection) -> None:
         """)
         conn.commit()
 
+    # Add notes column if missing
+    has_notes = any(col[1] == "notes" for col in columns)
+    if not has_notes:
+        print("Adding notes column...")
+        cur.execute("""
+            ALTER TABLE tasks
+                ADD COLUMN notes TEXT
+        """)
+        conn.commit()
 
-def create_board(conn: Connection, title: str) -> Optional[int]:
-    """Create a new board and return its ID."""
+
+def create_project(conn: Connection, title: str) -> Optional[int]:
+    """Create a new project and return its ID."""
     cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO boards (title) VALUES (?)", [title])
+        cur.execute("INSERT INTO projects (title) VALUES (?)", [title])
         conn.commit()
         return cur.lastrowid
     except Exception:
@@ -346,41 +421,41 @@ def create_board(conn: Connection, title: str) -> Optional[int]:
         return None
 
 
-def get_boards(conn: Connection) -> List[dict]:
-    """Get all boards."""
+def get_projects(conn: Connection) -> List[dict]:
+    """Get all projects."""
     cur = conn.cursor()
-    cur.execute("SELECT * FROM boards ORDER BY dt_created")
+    cur.execute("SELECT * FROM projects ORDER BY dt_created")
     rows = cur.fetchall()
     return [dict(row) for row in rows]
 
 
-def get_active_board(conn: Connection) -> Optional[dict]:
-    """Get the currently active board."""
+def get_active_project(conn: Connection) -> Optional[dict]:
+    """Get the currently active project."""
     cur = conn.cursor()
-    cur.execute("SELECT * FROM boards WHERE is_active = 1 LIMIT 1")
+    cur.execute("SELECT * FROM projects WHERE is_active = 1 LIMIT 1")
     row = cur.fetchone()
     if row:
         return dict(row)
-    
-    # If no active board, make the first board active
-    cur.execute("SELECT * FROM boards ORDER BY id LIMIT 1")
+
+    # If no active project, make the first project active
+    cur.execute("SELECT * FROM projects ORDER BY id LIMIT 1")
     row = cur.fetchone()
     if row:
-        board_id = row[0]
-        set_active_board(conn, board_id)
+        project_id = row[0]
+        set_active_project(conn, project_id)
         return dict(row)
-    
+
     return None
 
 
-def set_active_board(conn: Connection, board_id: int) -> bool:
-    """Set the active board."""
+def set_active_project(conn: Connection, project_id: int) -> bool:
+    """Set the active project."""
     cur = conn.cursor()
     try:
-        # First, deactivate all boards
-        cur.execute("UPDATE boards SET is_active = 0")
-        # Then activate the specified board
-        cur.execute("UPDATE boards SET is_active = 1 WHERE id = ?", [board_id])
+        # First, deactivate all projects
+        cur.execute("UPDATE projects SET is_active = 0")
+        # Then activate the specified project
+        cur.execute("UPDATE projects SET is_active = 1 WHERE id = ?", [project_id])
         conn.commit()
         return True
     except Exception:
@@ -388,25 +463,25 @@ def set_active_board(conn: Connection, board_id: int) -> bool:
         return False
 
 
-def delete_board(conn: Connection, board_id: int) -> bool:
-    """Delete a board and move its tasks to the default board (id=1)."""
+def delete_project(conn: Connection, project_id: int) -> bool:
+    """Delete a project and move its tasks to the default project (id=1)."""
     cur = conn.cursor()
     try:
-        # Don't allow deleting the default board
-        if board_id == 1:
+        # Don't allow deleting the default project
+        if project_id == 1:
             return False
-            
-        # Move all tasks from this board to the default board
-        cur.execute("UPDATE tasks SET board_id = 1 WHERE board_id = ?", [board_id])
-        
-        # Delete the board
-        cur.execute("DELETE FROM boards WHERE id = ?", [board_id])
-        
-        # If this was the active board, make default board active
-        cur.execute("SELECT COUNT(*) FROM boards WHERE is_active = 1")
+
+        # Move all tasks from this project to the default project
+        cur.execute("UPDATE tasks SET project_id = 1 WHERE project_id = ?", [project_id])
+
+        # Delete the project
+        cur.execute("DELETE FROM projects WHERE id = ?", [project_id])
+
+        # If this was the active project, make default project active
+        cur.execute("SELECT COUNT(*) FROM projects WHERE is_active = 1")
         if cur.fetchone()[0] == 0:
-            cur.execute("UPDATE boards SET is_active = 1 WHERE id = 1")
-        
+            cur.execute("UPDATE projects SET is_active = 1 WHERE id = 1")
+
         conn.commit()
         return True
     except Exception:

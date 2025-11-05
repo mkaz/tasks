@@ -13,19 +13,20 @@ class Task:
     dt_created: str
     dt_completed: str
     url: Optional[str] = None
-    board_id: int = 1
+    project_id: int = 1
+    notes: Optional[str] = None
 
     @staticmethod
     def create(conn: Connection, args: dict) -> Optional[int]:
         """Creates a new task in the database and returns its ID."""
         entry_text = args["task_entry"]
         task_text, url = parse_entry_text(entry_text)
-        board_id = args.get("board_id", 1)  # Default to board 1 if not specified
+        project_id = args.get("project_id", 1)  # Default to project 1 if not specified
 
         cur = conn.cursor()
-        sql = "INSERT INTO tasks (task, url, board_id) VALUES (?, ?, ?)"
+        sql = "INSERT INTO tasks (task, url, project_id) VALUES (?, ?, ?)"
         try:
-            cur.execute(sql, (task_text, url, board_id))
+            cur.execute(sql, (task_text, url, project_id))
             conn.commit()
             return cur.lastrowid
         except Exception:
@@ -47,10 +48,10 @@ class Task:
             conn.rollback()
 
     def update_details(
-        self, conn: Connection, task_text: str, url: Optional[str] = None
+        self, conn: Connection, task_text: str, url: Optional[str] = None, notes: Optional[str] = None
     ) -> None:
-        """Updates the task's text and optionally its URL in the database and on the instance.
-        If 'url' is None, the URL field is not updated in the database.
+        """Updates the task's text and optionally its URL and notes in the database and on the instance.
+        If 'url' or 'notes' is None, those fields are not updated in the database.
         """
         cur = conn.cursor()
 
@@ -60,6 +61,10 @@ class Task:
         if url is not None:
             fields_to_set["url"] = url
             values_list.append(url)
+
+        if notes is not None:
+            fields_to_set["notes"] = notes
+            values_list.append(notes)
 
         set_clause = ", ".join(f"{key} = ?" for key in fields_to_set)
         values_list.append(self.id)
@@ -73,6 +78,8 @@ class Task:
             self.task = task_text
             if url is not None:
                 self.url = url
+            if notes is not None:
+                self.notes = notes
         except Exception:
             conn.rollback()
 
