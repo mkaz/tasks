@@ -38,25 +38,37 @@ uv run pytest
 
 ### New UI Layout
 - Changed from 3-column kanban view to single-section view with detail pane
-- Left pane (30%): Shows tasks for current section (Later, Now, or Done)
+- Left pane (30%): Shows tasks for current section (Backlog, Now, or Done)
 - Right pane (70%): Shows detail view for selected task
 - Detail pane includes: task text, priority, state, URL, notes, timestamps
+- Detail pane layout stays consistent between read and edit modes (fields just become editable)
 
 ### Updated Key Bindings
-- `b`: Cycle through sections (Later → Now → Done → Later)
-- `p`: Switch projects (formerly `b` for boards)
-- `a`: Add new task (creates placeholder, use detail pane to edit)
-- `>`: Slide task right (Later → Now → Done → Archive)
-- `+/-`: Increase/decrease priority
-- `x`: Delete task
-- `u`: Undo last delete
-- `r`: Refresh current section
-- `q`: Quit
 
-**Removed key bindings:**
-- `<`: Move left (removed for simplicity)
-- `e`: Edit task (now use detail pane)
-- `Enter`: Open URL (now done from detail pane)
+**Simplified Global Bindings:**
+- `q`: Quit application
+- `Ctrl+n`: Create new task
+- `b`: Cycle through sections (Backlog → Now → Done → Backlog)
+- `p`: Switch projects
+- `r`: Refresh current section
+- `x`: Delete selected task
+
+**Task List Navigation:**
+- `↑/↓`: Navigate tasks
+- `Enter`: Open selected task for editing in detail pane
+
+**Detail Pane Editing:**
+- When you press Enter on a task, detail pane opens in edit mode
+- Edit any field: task title, priority (dropdown), URL, notes
+- `Tab/Shift+Tab`: Navigate between fields
+- `Esc`: Save all changes and return to read mode
+- Priority is a dropdown selector - no more +/- shortcuts
+
+**What Changed:**
+- Removed all the confusing shortcuts (l/n/d/a, +/-, etc.)
+- Single way to edit: Press Enter, edit fields, press Esc to save
+- Priority is now a visual dropdown selector
+- Much simpler and cleaner workflow
 
 ### CLI Simplification
 - Default behavior now launches kanban TUI (no arguments needed)

@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, Grid
-from textual.widgets import Header, Footer, Static, ListItem, ListView, Input, Button, TextArea
+from textual.widgets import Header, Footer, Static, ListItem, ListView, Input, Button, TextArea, Select
 from textual.binding import Binding
 from textual.screen import ModalScreen
 
@@ -117,6 +117,17 @@ class TaskListView(ListView):
         if len(self) > 0:
             self.highlighted = 0
 
+    def on_key(self, event) -> None:
+        """Handle Enter key to open detail pane for editing."""
+        if event.key == "enter":
+            # Trigger edit mode in detail pane
+            if self.app.detail_pane and self.app.detail_pane.current_task:
+                self.app.detail_pane.enter_edit_mode()
+                # Focus the first editable field
+                self.app.set_focus(self.app.detail_pane.query_one("#detail_task_input"))
+                event.prevent_default()
+                event.stop()
+
 
 class TaskColumn(Container):
     """A column representing a task state (Later, Now, Done)."""
@@ -154,26 +165,37 @@ class DetailPane(Container):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.current_task: Optional[TaskModel] = None
+        self.edit_mode: bool = False
 
     def compose(self) -> ComposeResult:
         with Vertical(id="detail_content"):
-            yield Static("Task Details", id="detail_header")
-            yield Static("No task selected", id="detail_task_label")
-            yield Static("Priority: -", id="detail_priority")
+            yield Static("Task Details [READ MODE]", id="detail_header")
+            yield Static("Task #-", id="detail_task_id")
+            yield Input(placeholder="Task description...", id="detail_task_input", disabled=True)
+            yield Select(
+                [("🔴 Highest (0)", 0), ("🟡 High (1)", 1), ("🟢 Normal (2)", 2), ("🟢 Low (3)", 3), ("🟢 Lowest (4)", 4)],
+                id="detail_priority_select",
+                allow_blank=False,
+                disabled=True
+            )
             yield Static("State: -", id="detail_state")
-            yield Input(placeholder="URL...", id="detail_url")
+            yield Input(placeholder="URL...", id="detail_url", disabled=True)
             yield Static("Notes:", id="detail_notes_label")
-            yield TextArea(id="detail_notes")
+            yield TextArea(id="detail_notes", disabled=True)
             yield Static("Created: -", id="detail_created")
             yield Static("Completed: -", id="detail_completed")
+            yield Static("[Highlight task and press Enter to edit]", id="detail_hint")
 
     def load_task(self, task: Optional[TaskModel], conn: sqlite3.Connection) -> None:
         """Load a task into the detail pane."""
         self.current_task = task
+        self.edit_mode = False  # Always start in read mode
+        self.update_mode_display()
 
         if task is None:
-            self.query_one("#detail_task_label", Static).update("No task selected")
-            self.query_one("#detail_priority", Static).update("Priority: -")
+            self.query_one("#detail_task_id", Static).update("Task #-")
+            self.query_one("#detail_task_input", Input).value = ""
+            self.query_one("#detail_priority_select", Select).value = 2
             self.query_one("#detail_state", Static).update("State: -")
             self.query_one("#detail_url", Input).value = ""
             self.query_one("#detail_notes", TextArea).text = ""
@@ -181,11 +203,9 @@ class DetailPane(Container):
             self.query_one("#detail_completed", Static).update("Completed: -")
             return
 
-        priority_indicators = ["🔴", "🟡", "🟢", "🟢", "🟢"]
-        priority_indicator = priority_indicators[min(task.priority, 4)]
-
-        self.query_one("#detail_task_label", Static).update(f"[bold]Task #{task.id}:[/bold] {task.task}")
-        self.query_one("#detail_priority", Static).update(f"Priority: {priority_indicator} ({task.priority})")
+        self.query_one("#detail_task_id", Static).update(f"[bold]Task #{task.id}[/bold]")
+        self.query_one("#detail_task_input", Input).value = task.task
+        self.query_one("#detail_priority_select", Select).value = task.priority
         self.query_one("#detail_state", Static).update(f"State: {task.state}")
         self.query_one("#detail_url", Input).value = task.url or ""
         self.query_one("#detail_notes", TextArea).text = task.notes or ""
@@ -196,45 +216,74 @@ class DetailPane(Container):
         else:
             self.query_one("#detail_completed", Static).update("Completed: -")
 
-    def on_input_changed(self, event: Input.Changed) -> None:
-        """Handle input field changes."""
-        if event.input.id == "detail_url" and self.current_task:
-            self.save_url()
+    def enter_edit_mode(self) -> None:
+        """Enter edit mode."""
+        if not self.current_task:
+            return
+        self.edit_mode = True
+        self.update_mode_display()
 
-    def on_text_area_changed(self, event: TextArea.Changed) -> None:
-        """Handle notes text area changes."""
-        if event.text_area.id == "detail_notes" and self.current_task:
-            self.save_notes()
+    def exit_edit_mode(self) -> None:
+        """Exit edit mode and save changes."""
+        if not self.current_task:
+            return
 
-    def save_url(self) -> None:
-        """Save URL changes to the database."""
+        # Save all changes
+        self.save_all()
+
+        self.edit_mode = False
+        self.update_mode_display()
+
+    def update_mode_display(self) -> None:
+        """Update the display based on current mode."""
+        if self.edit_mode:
+            # Enable editing
+            self.query_one("#detail_header", Static).update("Task Details [EDIT MODE]")
+            self.query_one("#detail_task_input", Input).disabled = False
+            self.query_one("#detail_priority_select", Select).disabled = False
+            self.query_one("#detail_url", Input).disabled = False
+            self.query_one("#detail_notes", TextArea).disabled = False
+            self.query_one("#detail_hint", Static).update("[Press 'Esc' to save and exit]")
+        else:
+            # Disable editing (read-only)
+            self.query_one("#detail_header", Static).update("Task Details [READ MODE]")
+            self.query_one("#detail_task_input", Input).disabled = True
+            self.query_one("#detail_priority_select", Select).disabled = True
+            self.query_one("#detail_url", Input).disabled = True
+            self.query_one("#detail_notes", TextArea).disabled = True
+            self.query_one("#detail_hint", Static).update("[Highlight task and press Enter to edit]")
+
+    def save_all(self) -> None:
+        """Save all changes to the database."""
         if not self.current_task:
             return
 
         try:
+            task_value = self.query_one("#detail_task_input", Input).value
+            priority_value = self.query_one("#detail_priority_select", Select).value
             url_value = self.query_one("#detail_url", Input).value
-            self.current_task.update_details(
-                self.app.conn,
-                self.current_task.task,
-                url=url_value if url_value.strip() else None
-            )
-        except Exception as e:
-            self.app.notify(f"Error saving URL: {e}", severity="error")
-
-    def save_notes(self) -> None:
-        """Save notes changes to the database."""
-        if not self.current_task:
-            return
-
-        try:
             notes_value = self.query_one("#detail_notes", TextArea).text
+
+            # Update task details
             self.current_task.update_details(
                 self.app.conn,
-                self.current_task.task,
+                task_value if task_value.strip() else "Untitled Task",
+                url=url_value if url_value.strip() else None,
                 notes=notes_value if notes_value.strip() else None
             )
+
+            # Update priority separately
+            if priority_value is not None:
+                cur = self.app.conn.cursor()
+                cur.execute("UPDATE tasks SET priority = ? WHERE id = ?", [priority_value, self.current_task.id])
+                self.app.conn.commit()
+                self.current_task.priority = priority_value
+
+            # Refresh the task list to show updated text
+            self.app.refresh_tasks()
+            self.app.notify("Changes saved")
         except Exception as e:
-            self.app.notify(f"Error saving notes: {e}", severity="error")
+            self.app.notify(f"Error saving: {e}", severity="error")
 
 
 class KanbanBoard(App):
@@ -323,11 +372,20 @@ class KanbanBoard(App):
         margin-bottom: 1;
     }
 
-    #detail_task_label {
+    #detail_task_id {
         margin-bottom: 1;
     }
 
-    #detail_priority, #detail_state {
+    #detail_task_input {
+        margin-bottom: 1;
+        height: 3;
+    }
+
+    #detail_priority_select {
+        margin-bottom: 1;
+    }
+
+    #detail_state {
         margin-bottom: 1;
     }
 
@@ -348,6 +406,12 @@ class KanbanBoard(App):
 
     #detail_created, #detail_completed {
         color: $text-muted;
+    }
+
+    #detail_hint {
+        margin-top: 1;
+        color: $text-muted;
+        text-align: center;
     }
 
     .column-header {
@@ -375,23 +439,18 @@ class KanbanBoard(App):
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
-        Binding("a", "add_task", "Add Task"),
+        Binding("ctrl+n", "add_task", "New Task"),
         Binding("b", "cycle_section", "Cycle Section"),
-        Binding("p", "switch_project", "Switch Project"),
-        Binding(">", "slide_right", "Slide Right"),
+        Binding("p", "switch_project", "Projects"),
         Binding("r", "refresh", "Refresh"),
         Binding("x", "delete_task", "Delete"),
-        Binding("+", "increase_priority", "↑ Priority"),
-        Binding("-", "decrease_priority", "↓ Priority"),
-        Binding("u", "undo", "Undo"),
     ]
 
     def __init__(self):
         super().__init__()
         self.conn: Optional[sqlite3.Connection] = None
-        self.current_section = "Now"  # "Later", "Now", or "Done"
-        self.sections = ["Later", "Now", "Done"]
-        self.last_action: Optional[tuple] = None
+        self.current_section = "Now"  # "Backlog", "Now", or "Done"
+        self.sections = ["Backlog", "Now", "Done"]
         self.current_project_id: Optional[int] = None
         self.current_project_title: str = "General"
         self.task_column: Optional[TaskColumn] = None
@@ -555,28 +614,15 @@ class KanbanBoard(App):
             if self.detail_pane:
                 self.detail_pane.load_task(task, self.conn)
 
-    def action_slide_right(self) -> None:
-        """Slide task right: Later -> Now -> Done -> Archive."""
-        task = self.get_current_task()
-        if not task:
-            return
-
-        try:
-            if task.state == "Later":
-                db.set_task_state(self.conn, task.id, "Now")
-                self.notify(f"Moved task #{task.id} to Now")
-            elif task.state == "Now":
-                task.mark_done(self.conn)
-                self.notify(f"Completed task #{task.id}")
-            elif task.dt_completed and task.dt_completed != "0":
-                # Task is in Done section, archive it
-                db.set_task_state(self.conn, task.id, "Archive")
-                self.notify(f"Archived task #{task.id}")
-
-            self.refresh_tasks()
-
-        except Exception as e:
-            self.notify(f"Error sliding task: {e}", severity="error")
+    def on_key(self, event) -> None:
+        """Handle Escape key to exit edit mode in detail pane."""
+        if event.key == "escape" and self.detail_pane and self.detail_pane.edit_mode:
+            self.detail_pane.exit_edit_mode()
+            # Refocus task list
+            if self.task_column:
+                self.set_focus(self.task_column.query_one(".task-list"))
+            event.prevent_default()
+            event.stop()
 
     def action_delete_task(self) -> None:
         """Delete the selected task."""
@@ -585,8 +631,6 @@ class KanbanBoard(App):
             return
 
         try:
-            # Store the state before deleting for undo
-            self.last_action = ("delete", task)
             task.delete(self.conn)
             self.notify(f"Deleted task #{task.id}")
             self.refresh_tasks()
@@ -598,85 +642,6 @@ class KanbanBoard(App):
         except Exception as e:
             self.notify(f"Error deleting task: {e}", severity="error")
 
-    def action_increase_priority(self) -> None:
-        """Increase priority of selected task (lower number = higher priority)."""
-        task = self.get_current_task()
-        if not task:
-            return
-
-        try:
-            new_priority = max(0, task.priority - 1)
-            if new_priority != task.priority:
-                db.increase_priority(self.conn, task.id)
-                self.notify(f"Increased priority of task #{task.id}")
-                self.refresh_tasks()
-                # Reload task in detail pane
-                updated_task = db.get_task(self.conn, task.id)
-                if updated_task and self.detail_pane:
-                    self.detail_pane.load_task(updated_task, self.conn)
-            else:
-                self.notify("Task already at highest priority")
-        except Exception as e:
-            self.notify(f"Error updating priority: {e}", severity="error")
-
-    def action_decrease_priority(self) -> None:
-        """Decrease priority of selected task (higher number = lower priority)."""
-        task = self.get_current_task()
-        if not task:
-            return
-
-        try:
-            new_priority = min(4, task.priority + 1)
-            if new_priority != task.priority:
-                db.decrease_priority(self.conn, task.id)
-                self.notify(f"Decreased priority of task #{task.id}")
-                self.refresh_tasks()
-                # Reload task in detail pane
-                updated_task = db.get_task(self.conn, task.id)
-                if updated_task and self.detail_pane:
-                    self.detail_pane.load_task(updated_task, self.conn)
-            else:
-                self.notify("Task already at lowest priority")
-        except Exception as e:
-            self.notify(f"Error updating priority: {e}", severity="error")
-
-    def action_undo(self) -> None:
-        """Undo the last action."""
-        if not self.last_action:
-            self.notify("No action to undo")
-            return
-
-        action_type, data = self.last_action
-
-        try:
-            if action_type == "delete":
-                task_to_restore: TaskModel = data
-                cur = self.conn.cursor()
-                cur.execute(
-                    """
-                    INSERT INTO tasks (id, task, url, notes, priority, dt_created, dt_completed, state, project_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        task_to_restore.id,
-                        task_to_restore.task,
-                        task_to_restore.url,
-                        task_to_restore.notes,
-                        task_to_restore.priority,
-                        task_to_restore.dt_created,
-                        task_to_restore.dt_completed,
-                        task_to_restore.state,
-                        task_to_restore.project_id,
-                    ),
-                )
-                self.conn.commit()
-                self.notify(f"Restored task #{task_to_restore.id}")
-                self.refresh_tasks()
-                self.last_action = None  # Clear undo state
-            else:
-                self.notify("Undo for this action is not implemented")
-        except Exception as e:
-            self.notify(f"Error undoing action: {e}", severity="error")
 
     def action_switch_project(self) -> None:
         """Show project switcher modal."""

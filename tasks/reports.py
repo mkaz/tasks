@@ -21,11 +21,11 @@ def show_tasks(tasks: List[Task]):
     # Create a single table with two columns for states
     table = Table(show_header=True, padding=(0, 1), expand=True, width=80)
     table.add_column(" Now", justify="left", ratio=1)
-    table.add_column(" Later", justify="left", ratio=1)
+    table.add_column(" Backlog", justify="left", ratio=1)
 
     # Group tasks by state
     now_tasks = []
-    later_tasks = []
+    backlog_tasks = []
 
     for task in tasks:
         state = task.state
@@ -35,19 +35,19 @@ def show_tasks(tasks: List[Task]):
 
         if state == "Now":
             now_tasks.append(formatted_task)
-        elif state == "Later":
-            later_tasks.append(formatted_task)
+        elif state == "Backlog":
+            backlog_tasks.append(formatted_task)
 
     # Find the maximum length to determine number of rows
-    max_length = max(len(now_tasks), len(later_tasks))
+    max_length = max(len(now_tasks), len(backlog_tasks))
 
     # Pad shorter lists with empty strings to match max_length
     now_tasks.extend([""] * (max_length - len(now_tasks)))
-    later_tasks.extend([""] * (max_length - len(later_tasks)))
+    backlog_tasks.extend([""] * (max_length - len(backlog_tasks)))
 
     # Add rows to table
     for i in range(max_length):
-        table.add_row(now_tasks[i], later_tasks[i])
+        table.add_row(now_tasks[i], backlog_tasks[i])
 
     console.print(table)
 

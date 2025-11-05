@@ -181,7 +181,7 @@ def decrease_priority(conn: Connection, task_id: int):
 
 
 def set_task_state(conn: Connection, task_id: int, state: str):
-    """Set task state to one of: Now, Later, Done, Archive"""
+    """Set task state to one of: Now, Backlog, Done, Archive"""
     cur = conn.cursor()
     # LIMIT clause is not needed in UPDATE statement since WHERE id = ?
     # already ensures we only update one row (id is primary key)
