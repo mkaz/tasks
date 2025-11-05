@@ -97,11 +97,16 @@ class TaskListItem(ListItem):
 
     def __init__(self, task: TaskModel, *args, **kwargs):
         self._task_model = task  # Use private attribute to avoid property conflicts
-        priority_indicators = ["🔴", "🟡", "🟢", "🟢", "🟢"]
-        priority_indicator = priority_indicators[min(task.priority, 4)]
         url_indicator = " 🔗" if task.url else ""
 
-        label = f"{task.id:>3} {priority_indicator} {task.task}{url_indicator}"
+        # Show checkbox for Done tasks, priority indicator for others
+        if task.state == "Done":
+            indicator = "✅"
+        else:
+            priority_indicators = ["🔴", "🟡", "🟢", "🟢", "🟢"]
+            indicator = priority_indicators[min(task.priority, 4)]
+
+        label = f"{task.id:>3} {indicator} {task.task}{url_indicator}"
         super().__init__(Static(label, classes="task-item"), *args, **kwargs)
 
     @property
@@ -440,17 +445,19 @@ class KanbanBoard(App):
     BINDINGS = [
         Binding("q", "quit", "Quit"),
         Binding("ctrl+n", "add_task", "New Task"),
-        Binding("b", "cycle_section", "Cycle Section"),
+        Binding("left", "cycle_section", "◀", show=False),
+        Binding("right", "cycle_section", "▶", show=False),
         Binding("p", "switch_project", "Projects"),
-        Binding("r", "refresh", "Refresh"),
         Binding("x", "delete_task", "Delete"),
+        Binding("d", "mark_done", "Done"),
+        Binding("ctrl+enter", "open_url", "Open URL"),
     ]
 
     def __init__(self):
         super().__init__()
         self.conn: Optional[sqlite3.Connection] = None
-        self.current_section = "Now"  # "Backlog", "Now", or "Done"
-        self.sections = ["Backlog", "Now", "Done"]
+        self.current_section = "Backlog"  # "Backlog" or "Done"
+        self.sections = ["Backlog", "Done"]
         self.current_project_id: Optional[int] = None
         self.current_project_title: str = "General"
         self.task_column: Optional[TaskColumn] = None
@@ -550,13 +557,8 @@ class KanbanBoard(App):
         except Exception as e:
             self.notify(f"Error refreshing tasks: {e}", severity="error")
 
-    def action_refresh(self) -> None:
-        """Refresh the current section."""
-        self.refresh_tasks()
-        self.notify("Tasks refreshed")
-
     def action_cycle_section(self) -> None:
-        """Cycle through sections (Later -> Now -> Done -> Later)."""
+        """Toggle between Backlog and Done sections."""
         current_index = self.sections.index(self.current_section)
         next_index = (current_index + 1) % len(self.sections)
         self.current_section = self.sections[next_index]
@@ -573,9 +575,7 @@ class KanbanBoard(App):
             self.set_focus(task_list)
 
     def action_add_task(self) -> None:
-        """Add a new task using the detail pane."""
-        # For now, use a simple approach - in the future this could use the detail pane
-        # But we need to create the task first to have something to edit
+        """Add a new task to Backlog."""
         try:
             args = {
                 "task_entry": "New Task",
@@ -583,8 +583,14 @@ class KanbanBoard(App):
             }
             task_id = TaskModel.create(self.conn, args)
             if task_id:
-                db.set_task_state(self.conn, task_id, self.current_section)
-                self.notify(f"Created Task #{task_id}")
+                # Always create new tasks in Backlog
+                db.set_task_state(self.conn, task_id, "Backlog")
+                self.notify(f"Created Task #{task_id} in Backlog")
+
+                # Switch to Backlog if not already there
+                if self.current_section != "Backlog":
+                    self.current_section = "Backlog"
+
                 self.refresh_tasks()
 
                 # Load the new task in the detail pane
@@ -623,6 +629,42 @@ class KanbanBoard(App):
                 self.set_focus(self.task_column.query_one(".task-list"))
             event.prevent_default()
             event.stop()
+
+    def action_mark_done(self) -> None:
+        """Mark the selected task as done."""
+        task = self.get_current_task()
+        if not task:
+            return
+
+        try:
+            task.mark_done(self.conn)
+            db.set_task_state(self.conn, task.id, "Done")
+            self.notify(f"Marked task #{task.id} as done")
+            self.refresh_tasks()
+
+            # Clear detail pane
+            if self.detail_pane:
+                self.detail_pane.load_task(None, self.conn)
+
+        except Exception as e:
+            self.notify(f"Error marking task done: {e}", severity="error")
+
+    def action_open_url(self) -> None:
+        """Open the URL of the selected task in the default browser."""
+        task = self.get_current_task()
+        if not task:
+            return
+
+        if not task.url:
+            self.notify("Task has no URL", severity="warning")
+            return
+
+        try:
+            import webbrowser
+            webbrowser.open(task.url)
+            self.notify(f"Opening URL: {task.url}")
+        except Exception as e:
+            self.notify(f"Error opening URL: {e}", severity="error")
 
     def action_delete_task(self) -> None:
         """Delete the selected task."""

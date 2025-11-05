@@ -29,7 +29,7 @@ def create_schema(conn: Connection):
             url TEXT,
             notes TEXT,
             priority INTEGER DEFAULT 2,
-            state TEXT DEFAULT 'Now',
+            state TEXT DEFAULT 'Backlog',
             project_id INTEGER DEFAULT 1,
             dt_completed DATETIME DEFAULT 0,
             dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -298,7 +298,7 @@ def migrate_schema(conn: Connection) -> None:
                 url TEXT,
                 notes TEXT,
                 priority INTEGER DEFAULT 2,
-                state TEXT DEFAULT 'Now',
+                state TEXT DEFAULT 'Backlog',
                 project_id INTEGER DEFAULT 1,
                 dt_completed DATETIME DEFAULT 0,
                 dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -323,7 +323,7 @@ def migrate_schema(conn: Connection) -> None:
         print("Adding state column...")
         cur.execute("""
             ALTER TABLE tasks
-                ADD COLUMN state TEXT DEFAULT 'Now'
+                ADD COLUMN state TEXT DEFAULT 'Backlog'
         """)
         conn.commit()
 
@@ -347,7 +347,7 @@ def migrate_schema(conn: Connection) -> None:
                 url TEXT,
                 notes TEXT,
                 priority INTEGER DEFAULT 2,
-                state TEXT DEFAULT 'Now',
+                state TEXT DEFAULT 'Backlog',
                 project_id INTEGER DEFAULT 1,
                 dt_completed DATETIME DEFAULT 0,
                 dt_created DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -407,6 +407,15 @@ def migrate_schema(conn: Connection) -> None:
                 ADD COLUMN notes TEXT
         """)
         conn.commit()
+
+    # Migrate existing "Now" tasks to "Backlog" (two-section workflow)
+    cur.execute("SELECT COUNT(*) FROM tasks WHERE state = 'Now'")
+    now_count = cur.fetchone()[0]
+    if now_count > 0:
+        print(f"Migrating {now_count} tasks from 'Now' to 'Backlog'...")
+        cur.execute("UPDATE tasks SET state = 'Backlog' WHERE state = 'Now'")
+        conn.commit()
+        print("Successfully migrated 'Now' tasks to 'Backlog'.")
 
 
 def create_project(conn: Connection, title: str) -> Optional[int]:

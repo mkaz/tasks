@@ -20,34 +20,36 @@ def show_tasks(tasks: List[Task]):
 
     # Create a single table with two columns for states
     table = Table(show_header=True, padding=(0, 1), expand=True, width=80)
-    table.add_column(" Now", justify="left", ratio=1)
     table.add_column(" Backlog", justify="left", ratio=1)
+    table.add_column(" Done", justify="left", ratio=1)
 
     # Group tasks by state
-    now_tasks = []
     backlog_tasks = []
+    done_tasks = []
 
     for task in tasks:
         state = task.state
         priority_style = get_priority_style(task.priority)
         url_indicator = " 🔗" if task.url else ""
-        formatted_task = f"{task.id:>3} [{priority_style}]{task.task}{url_indicator}[/{priority_style}]"
 
-        if state == "Now":
-            now_tasks.append(formatted_task)
-        elif state == "Backlog":
+        if state == "Backlog":
+            formatted_task = f"{task.id:>3} [{priority_style}]{task.task}{url_indicator}[/{priority_style}]"
             backlog_tasks.append(formatted_task)
+        elif state == "Done":
+            # Show checkbox for done tasks instead of priority indicator
+            formatted_task = f"{task.id:>3} ✅ {task.task}{url_indicator}"
+            done_tasks.append(formatted_task)
 
     # Find the maximum length to determine number of rows
-    max_length = max(len(now_tasks), len(backlog_tasks))
+    max_length = max(len(backlog_tasks), len(done_tasks))
 
     # Pad shorter lists with empty strings to match max_length
-    now_tasks.extend([""] * (max_length - len(now_tasks)))
     backlog_tasks.extend([""] * (max_length - len(backlog_tasks)))
+    done_tasks.extend([""] * (max_length - len(done_tasks)))
 
     # Add rows to table
     for i in range(max_length):
-        table.add_row(now_tasks[i], backlog_tasks[i])
+        table.add_row(backlog_tasks[i], done_tasks[i])
 
     console.print(table)
 

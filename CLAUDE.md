@@ -38,23 +38,31 @@ uv run pytest
 
 ### New UI Layout
 - Changed from 3-column kanban view to single-section view with detail pane
-- Left pane (30%): Shows tasks for current section (Backlog, Now, or Done)
+- Left pane (30%): Shows tasks for current section (Backlog or Done)
 - Right pane (70%): Shows detail view for selected task
 - Detail pane includes: task text, priority, state, URL, notes, timestamps
 - Detail pane layout stays consistent between read and edit modes (fields just become editable)
+
+### Two-Section Workflow
+- **Backlog**: All tasks to be worked on start here
+- **Done**: Completed tasks
+- New tasks are always created in Backlog
+- Use `d` shortcut to quickly mark tasks as done
+- Removed "Now" section to simplify workflow
 
 ### Updated Key Bindings
 
 **Simplified Global Bindings:**
 - `q`: Quit application
-- `Ctrl+n`: Create new task
-- `b`: Cycle through sections (Backlog → Now → Done → Backlog)
+- `Ctrl+n`: Create new task (always goes to Backlog)
+- `←/→`: Toggle between sections (Backlog ↔ Done)
 - `p`: Switch projects
-- `r`: Refresh current section
+- `d`: Mark selected task as done
 - `x`: Delete selected task
+- `Ctrl+Enter`: Open URL in browser (if task has a URL)
 
 **Task List Navigation:**
-- `↑/↓`: Navigate tasks
+- `↑/↓`: Navigate tasks in current section
 - `Enter`: Open selected task for editing in detail pane
 
 **Detail Pane Editing:**
