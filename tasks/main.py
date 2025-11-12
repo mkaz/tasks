@@ -5,9 +5,7 @@ A simple command-line task list.
 """
 
 import sqlite3
-import sys
 from pathlib import Path
-from typing import Optional
 
 # local
 import tasks.dbactions as db
@@ -39,14 +37,13 @@ def main(skip_local=False) -> None:
         if is_new_db:
             db.create_schema(conn)
 
-        command = args["command"]
+        command = args["command"] or "show"
 
         # Command handler mapping
         command_handlers = {
             "add": handle_add,
             "show": handle_show,
             "migrate": lambda c, a: db.migrate_schema(c),
-            None: handle_kanban,
         }
 
         handler = command_handlers.get(command)
@@ -88,18 +85,6 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
         recent_completed = db.get_tasks_com(conn, days=7)  # Show last 7 days of completed tasks
         all_tasks = incomplete_tasks + recent_completed
         reports.show_tasks(all_tasks)
-
-
-
-
-
-
-
-def handle_kanban(conn: sqlite3.Connection, args: dict) -> None:
-    """Handle the kanban command to open the kanban board TUI."""
-    conn.close()  # Close the connection as kanban will create its own
-    from tasks.kanban import run_kanban
-    run_kanban()
 
 
 if __name__ == "__main__":

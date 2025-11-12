@@ -1,6 +1,6 @@
 # Tasks
 
-A simple task management tool with an interactive TUI kanban board and command-line interface.
+A simple, fast command-line task list for the terminal.
 
 **Note:** This is just a hobby project for personal use, I do not aim to keep compatibility between versions or support in any way. Feel free to use, fork, learn from, but don't be surprised if things break things over time. All in the name of learning, experiments, and play.
 
@@ -21,32 +21,19 @@ python3 -m pip install git+https://github.com/mkaz/tasks
 
 ## Usage
 
-Run tasks without any arguments to launch the interactive kanban board:
+Run tasks without any arguments to show your backlog and recently completed tasks:
 
 ```bash
 tasks
 ```
 
-The kanban TUI provides full task management including:
-- Creating, editing, and deleting tasks
-- Moving tasks between states (Todo, Now, Done)
-- Setting priorities
-- Adding notes and URLs
-- Undo functionality
+### Commands
 
-### Command Line Interface
-
-For quick operations, use these commands:
+Use the CLI commands for common operations:
 
 ```bash
 # Add a new task
 tasks add "Your task description"
-
-# Mark tasks as complete
-tasks do 1 2 3
-
-# Delete tasks
-tasks del 1 2 3
 
 # Show all tasks
 tasks show
@@ -64,7 +51,7 @@ tasks show 5
 tasks migrate
 ```
 
-**Note**: Task descriptions must be quoted and use the explicit `add` command. Running `tasks "some text"` without the `add` command will show an error.
+`tasks` without a subcommand is equivalent to `tasks show`.
 
 ## Configuration
 

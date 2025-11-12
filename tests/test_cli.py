@@ -55,10 +55,17 @@ def test_show_tasks(mock_env_db_path, monkeypatch):
     assert "Task to display" in output.getvalue()
 
 
+def test_default_command_shows_tasks(mock_env_db_path, monkeypatch):
+    """Running without a subcommand should behave like `tasks show`."""
+    conn = sqlite3.connect(mock_env_db_path)
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Default Task"])
+    conn.commit()
+    conn.close()
 
+    test_args = ["tasks"]
+    output = StringIO()
+    with patch.object(sys, "argv", test_args), patch("sys.stdout", output):
+        main(skip_local=True)
 
-# The following commands have been removed from CLI and are now TUI-only:
-# - do (mark task as done)  
-# - del (delete task)
-# - priority up/down
-# - mode/state setting
+    assert "Default Task" in output.getvalue()
