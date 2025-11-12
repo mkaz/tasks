@@ -7,26 +7,39 @@ import re
 @dataclass
 class Task:
     id: int
-    task: str
+    title: str
     priority: int
     state: str
     dt_created: str
     dt_completed: str
     url: Optional[str] = None
-    project_id: int = 1
     notes: Optional[str] = None
 
     @staticmethod
     def create(conn: Connection, args: dict) -> Optional[int]:
         """Creates a new task in the database and returns its ID."""
         entry_text = args["task_entry"]
-        task_text, url = parse_entry_text(entry_text)
-        project_id = args.get("project_id", 1)  # Default to project 1 if not specified
+        title_text, url = parse_entry_text(entry_text)
 
         cur = conn.cursor()
-        sql = "INSERT INTO tasks (task, url, project_id) VALUES (?, ?, ?)"
+
+        columns = ["title", "url"]
+        values = [title_text, url]
+
+        priority = args.get("priority")
+        if priority is not None:
+            columns.append("priority")
+            values.append(priority)
+
+        state = args.get("state")
+        if state:
+            columns.append("state")
+            values.append(state)
+
+        placeholders = ", ".join(["?"] * len(values))
+        sql = f"INSERT INTO tasks ({', '.join(columns)}) VALUES ({placeholders})"
         try:
-            cur.execute(sql, (task_text, url, project_id))
+            cur.execute(sql, values)
             conn.commit()
             return cur.lastrowid
         except Exception:
@@ -48,15 +61,15 @@ class Task:
             conn.rollback()
 
     def update_details(
-        self, conn: Connection, task_text: str, url: Optional[str] = None, notes: Optional[str] = None
+        self, conn: Connection, title_text: str, url: Optional[str] = None, notes: Optional[str] = None
     ) -> None:
-        """Updates the task's text and optionally its URL and notes in the database and on the instance.
+        """Updates the title and optionally its URL and notes in the database and on the instance.
         If 'url' or 'notes' is None, those fields are not updated in the database.
         """
         cur = conn.cursor()
 
-        fields_to_set = {"task": task_text}
-        values_list = [task_text]
+        fields_to_set = {"title": title_text}
+        values_list = [title_text]
 
         if url is not None:
             fields_to_set["url"] = url
@@ -75,7 +88,7 @@ class Task:
             cur.execute(sql, values_list)
             conn.commit()
 
-            self.task = task_text
+            self.title = title_text
             if url is not None:
                 self.url = url
             if notes is not None:
@@ -95,14 +108,14 @@ class Task:
 
 
 def parse_entry_text(entry_text: str) -> tuple[str, Optional[str]]:
-    """Parse the entry text into a task text and URL."""
+    """Parse the entry text into a title and optional URL."""
     # use regex to find the first URL in entry_text and extract the URL and the rest of the text
     url_pattern = r"https?://.*?[^\s]+"
     match = re.search(url_pattern, entry_text)
     if match:
         url = match.group(0)
-        task_text = entry_text.replace(url, "")
+        title_text = entry_text.replace(url, "").strip()
     else:
         url = None
-        task_text = entry_text
-    return task_text, url
+        title_text = entry_text.strip()
+    return title_text, url

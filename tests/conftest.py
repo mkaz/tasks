@@ -51,10 +51,10 @@ def sample_tasks(connection):
         ("Test task 3", None, 3, "Now"),
     ]
 
-    for task, url, priority, state in sample_data:
+    for title, url, priority, state in sample_data:
         cur.execute(
-            "INSERT INTO tasks (task, url, priority, state) VALUES (?, ?, ?, ?)",
-            (task, url, priority, state),
+            "INSERT INTO tasks (title, url, priority, state) VALUES (?, ?, ?, ?)",
+            (title, url, priority, state),
         )
 
     connection.commit()

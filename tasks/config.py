@@ -5,8 +5,6 @@ import sys
 from pathlib import Path
 from typing import Dict
 
-from appdirs import AppDirs
-
 # Define available commands and their descriptions
 # Use a dictionary for easier management and help text generation
 COMMANDS = {
@@ -85,7 +83,19 @@ def init_args(skip_local=False) -> Dict:
     parser_add.add_argument(
         "task_entry", nargs="+", help="The text for the task to add."
     )
-
+    parser_add.add_argument(
+        "-s",
+        "--state",
+        help="Set the initial state for the task (defaults to Backlog).",
+    )
+    parser_add.add_argument(
+        "-p",
+        "--priority",
+        type=int,
+        choices=range(0, 5),
+        metavar="{0-4}",
+        help="Set the initial priority (0=highest ... 4=lowest).",
+    )
 
     # Show command - duplicate the arguments from main parser
     parser_show = subparsers.add_parser("show", help=COMMANDS["show"])
@@ -111,7 +121,6 @@ def init_args(skip_local=False) -> Dict:
         default=[],
         help="Task ID to show details for.",
     )
-
 
     # Migrate command
     subparsers.add_parser("migrate", help=COMMANDS["migrate"])
@@ -171,11 +180,4 @@ def get_taskdb_loc(skip_local=False) -> Path:
         return Path(env_var)
 
     # Finally use system specific data dir
-    dirs = AppDirs("Tasks", "mkaz")
-
-    # No config file, default to data dir
-    data_dir = Path(dirs.user_data_dir)
-    if not data_dir.is_dir():
-        data_dir.mkdir()
-
-    return Path(dirs.user_data_dir, "tasks.db")
+    return Path.home() / "Documents" / "tasks.db"

@@ -32,9 +32,10 @@ def show_tasks_list(tasks: List[Task]):
 
 def show_task_details(task: Task):
     print(f"Task ID  : {task.id}")
-    print(f"Task     : {task.task}")
+    print(f"Title    : {task.title}")
     print(f"Priority : {task.priority}")
     print(f"State    : {task.state}")
+    print(f"Notes    : {task.notes}")
     print(f"URL      : {task.url}")
     print(f"Completed: {task.dt_completed}")
     print(f"Created  : {task.dt_created}")
@@ -64,7 +65,7 @@ def make_tasks_table(tasks: List[Task], include_state: bool = False) -> Table:
         expand=False,
     )
     table.add_column("ID", justify="right", width=4, style="bold cyan")
-    table.add_column("Task", width=42)
+    table.add_column("Title", width=42)
     if include_state:
         table.add_column("State", justify="left", style="magenta")
     table.add_column("Priority", justify="left")
@@ -74,7 +75,7 @@ def make_tasks_table(tasks: List[Task], include_state: bool = False) -> Table:
         url_indicator = " 🔗" if task.url else ""
         row = [
             str(task.id),
-            f"[{priority_style}]{task.task}{url_indicator}[/{priority_style}]",
+            f"[{priority_style}]{task.title}{url_indicator}[/{priority_style}]",
         ]
 
         if include_state:

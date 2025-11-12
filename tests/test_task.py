@@ -19,11 +19,20 @@ def test_task_create(connection):
     result = cur.fetchone()
     assert result[0] == "https://example.com"
 
+    # Test with explicit priority and state
+    entry = {"task_entry": "Task with flags", "priority": 0, "state": "Now"}
+    task_id_with_flags = Task.create(connection, entry)
+    assert task_id_with_flags is not None
+    cur.execute("SELECT priority, state FROM tasks WHERE id = ?", [task_id_with_flags])
+    result = cur.fetchone()
+    assert result["priority"] == 0
+    assert result["state"] == "Now"
+
     # Verify tasks were created
     cur = connection.cursor()
     cur.execute("SELECT COUNT(*) FROM tasks")
     count = cur.fetchone()[0]
-    assert count == 2
+    assert count == 3
 
 
 def test_task_mark_done(sample_tasks, connection):
@@ -53,23 +62,23 @@ def test_task_update_details(sample_tasks, connection):
     task = Task(**dict(row))
 
     # Update just text
-    new_text = "Updated task text"
-    task.update_details(connection, new_text)
+    new_title = "Updated task text"
+    task.update_details(connection, new_title)
 
     # Verify update
-    cur.execute("SELECT task, url FROM tasks WHERE id = ?", [task.id])
+    cur.execute("SELECT title, url FROM tasks WHERE id = ?", [task.id])
     result = cur.fetchone()
-    assert result["task"] == new_text
+    assert result["title"] == new_title
     assert result["url"] == task.url  # Should be unchanged
 
     # Update text and URL
     new_url = "https://example.com/updated"
-    task.update_details(connection, new_text, new_url)
+    task.update_details(connection, new_title, new_url)
 
     # Verify update
-    cur.execute("SELECT task, url FROM tasks WHERE id = ?", [task.id])
+    cur.execute("SELECT title, url FROM tasks WHERE id = ?", [task.id])
     result = cur.fetchone()
-    assert result["task"] == new_text
+    assert result["title"] == new_title
     assert result["url"] == new_url
 
 

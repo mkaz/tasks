@@ -43,7 +43,6 @@ def main(skip_local=False) -> None:
         command_handlers = {
             "add": handle_add,
             "show": handle_show,
-            "migrate": lambda c, a: db.migrate_schema(c),
         }
 
         handler = command_handlers.get(command)

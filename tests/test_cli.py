@@ -30,10 +30,29 @@ def test_add_task(mock_env_db_path, monkeypatch):
     conn = sqlite3.connect(mock_env_db_path)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    cur.execute("SELECT task FROM tasks WHERE task = ?", ["Test CLI task"])
+    cur.execute("SELECT title FROM tasks WHERE title = ?", ["Test CLI task"])
     result = cur.fetchone()
     assert result is not None
     conn.close()
+
+
+def test_add_task_with_flags(mock_env_db_path, monkeypatch):
+    """Test adding a task with explicit state and priority."""
+    test_args = ["tasks", "add", "-s", "Now", "-p", "1", "Flag task"]
+    output = StringIO()
+    with patch.object(sys, "argv", test_args), patch("sys.stdout", output):
+        main(skip_local=True)
+
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT title, priority, state FROM tasks WHERE title = ?", ["Flag task"])
+    row = cur.fetchone()
+    conn.close()
+
+    assert row is not None
+    assert row["priority"] == 1
+    assert row["state"] == "Now"
 
 
 def test_show_tasks(mock_env_db_path, monkeypatch):
@@ -41,7 +60,7 @@ def test_show_tasks(mock_env_db_path, monkeypatch):
     # First add a task so we have something to show
     conn = sqlite3.connect(mock_env_db_path)
     cur = conn.cursor()
-    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Task to display"])
+    cur.execute("INSERT INTO tasks (title) VALUES (?)", ["Task to display"])
     conn.commit()
     conn.close()
 
@@ -59,7 +78,7 @@ def test_default_command_shows_tasks(mock_env_db_path, monkeypatch):
     """Running without a subcommand should behave like `tasks show`."""
     conn = sqlite3.connect(mock_env_db_path)
     cur = conn.cursor()
-    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Default Task"])
+    cur.execute("INSERT INTO tasks (title) VALUES (?)", ["Default Task"])
     conn.commit()
     conn.close()
 
@@ -75,9 +94,9 @@ def test_default_view_hides_done_tasks(mock_env_db_path, monkeypatch):
     """Completed tasks should not appear in the default listing."""
     conn = sqlite3.connect(mock_env_db_path)
     cur = conn.cursor()
-    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Active Task"])
+    cur.execute("INSERT INTO tasks (title) VALUES (?)", ["Active Task"])
     cur.execute(
-        "INSERT INTO tasks (task, dt_completed) VALUES (?, datetime('now'))",
+        "INSERT INTO tasks (title, dt_completed) VALUES (?, datetime('now'))",
         ["Finished Task"],
     )
     conn.commit()

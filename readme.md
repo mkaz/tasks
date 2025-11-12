@@ -32,6 +32,8 @@ Use the CLI commands for common operations:
 ```bash
 # Add a new task
 tasks add "Your task description"
+# Add with initial state and priority
+tasks add -s Now -p 1 "High priority task"
 
 # Show all tasks
 tasks show
@@ -53,7 +55,7 @@ tasks migrate
 
 ## Configuration
 
-Tasks uses a SQLite db to store its data. The program will look in this order for determining what database file to use. Adjust to fit your needs, maybe different databases for differnt projects.
+Tasks uses a SQLite db to store its data. The program will look in this order for determining what database file to use. Point different invocations at different DB files if you want separate contexts.
 
 1. If `--db DBFILE` flag on command-line
 2. If `tasks.db` file in current directory
