@@ -1,7 +1,8 @@
-from rich import print
-from rich.table import Table
-from rich.console import Console
 from typing import List
+
+from rich import box, print
+from rich.console import Console
+from rich.table import Table
 
 # local
 from tasks.task import Task
@@ -17,41 +18,11 @@ def get_priority_style(priority: int) -> str:
 
 def show_tasks(tasks: List[Task]):
     console = Console()
+    if not tasks:
+        print("[dim]No active tasks.[/dim]")
+        return
 
-    # Create a single table with two columns for states
-    table = Table(show_header=True, padding=(0, 1), expand=True, width=80)
-    table.add_column(" Backlog", justify="left", ratio=1)
-    table.add_column(" Done", justify="left", ratio=1)
-
-    # Group tasks by state
-    backlog_tasks = []
-    done_tasks = []
-
-    for task in tasks:
-        state = task.state
-        priority_style = get_priority_style(task.priority)
-        url_indicator = " 🔗" if task.url else ""
-
-        if state == "Backlog":
-            formatted_task = f"{task.id:>3} [{priority_style}]{task.task}{url_indicator}[/{priority_style}]"
-            backlog_tasks.append(formatted_task)
-        elif state == "Done":
-            # Show checkbox for done tasks instead of priority indicator
-            formatted_task = f"{task.id:>3} ✅ {task.task}{url_indicator}"
-            done_tasks.append(formatted_task)
-
-    # Find the maximum length to determine number of rows
-    max_length = max(len(backlog_tasks), len(done_tasks))
-
-    # Pad shorter lists with empty strings to match max_length
-    backlog_tasks.extend([""] * (max_length - len(backlog_tasks)))
-    done_tasks.extend([""] * (max_length - len(done_tasks)))
-
-    # Add rows to table
-    for i in range(max_length):
-        table.add_row(backlog_tasks[i], done_tasks[i])
-
-    console.print(table)
+    console.print(make_tasks_table(tasks, include_state=True))
 
 
 def show_tasks_list(tasks: List[Task]):
@@ -84,19 +55,33 @@ def show_tasks_week(new_tasks: List[Task], com_tasks: List[Task]):
 
 
 # Helper function to make a table of tasks
-def make_tasks_table(tasks: List[Task]):
-    table = Table(show_header=False, padding=(0, 1), width=80)
-    table.add_column("ID", justify="right", width=4)
+def make_tasks_table(tasks: List[Task], include_state: bool = False) -> Table:
+    table = Table(
+        show_header=True,
+        padding=(0, 1),
+        width=80,
+        box=box.ASCII,
+        expand=False,
+    )
+    table.add_column("ID", justify="right", width=4, style="bold cyan")
     table.add_column("Task", width=42)
+    if include_state:
+        table.add_column("State", justify="left", style="magenta")
     table.add_column("Priority", justify="left")
 
     for task in tasks:
         priority_style = get_priority_style(task.priority)
         url_indicator = " 🔗" if task.url else ""
-        table.add_row(
+        row = [
             str(task.id),
             f"[{priority_style}]{task.task}{url_indicator}[/{priority_style}]",
-            f"[{priority_style}]P{task.priority}[/{priority_style}]",
-        )
+        ]
+
+        if include_state:
+            state_style = "green" if task.state == "Done" else "cyan"
+            row.append(f"[{state_style}]{task.state}[/{state_style}]")
+
+        row.append(f"[{priority_style}]P{task.priority}[/{priority_style}]")
+        table.add_row(*row)
 
     return table

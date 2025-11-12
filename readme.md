@@ -2,14 +2,12 @@
 
 A simple, fast command-line task list for the terminal.
 
-**Note:** This is just a hobby project for personal use, I do not aim to keep compatibility between versions or support in any way. Feel free to use, fork, learn from, but don't be surprised if things break things over time. All in the name of learning, experiments, and play.
+**Note:** This is just a hobby project for personal use, I do not aim to keep compatibility between versions or support in any way. Feel free to use, fork, learn from, but don't be surprised if things break over time. All in the name of learning, experiments, and play.
 
 
 ## Data Storage
 
-Data is stored in a SQLite database.
-
--   See [CLAUDE.md](CLAUDE.md) for schema and additional info
+Data is stored in a sqlite3 database.
 
 ## Install
 
@@ -21,7 +19,7 @@ python3 -m pip install git+https://github.com/mkaz/tasks
 
 ## Usage
 
-Run tasks without any arguments to show your backlog and recently completed tasks:
+Run tasks without any arguments to show your active tasks sorted by priority:
 
 ```bash
 tasks
@@ -51,7 +49,7 @@ tasks show 5
 tasks migrate
 ```
 
-`tasks` without a subcommand is equivalent to `tasks show`.
+`tasks` without a subcommand is equivalent to `tasks show`. Use `tasks show --week` when you want a report of what was completed recently.
 
 ## Configuration
 

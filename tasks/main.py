@@ -80,11 +80,8 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
         tasks = db.get_tasks_by_state(conn, "Now")
         reports.show_tasks(tasks)
     else:
-        # Get both incomplete tasks and recently completed tasks
-        incomplete_tasks = db.get_tasks(conn)
-        recent_completed = db.get_tasks_com(conn, days=7)  # Show last 7 days of completed tasks
-        all_tasks = incomplete_tasks + recent_completed
-        reports.show_tasks(all_tasks)
+        tasks = db.get_tasks(conn)
+        reports.show_tasks(tasks)
 
 
 if __name__ == "__main__":

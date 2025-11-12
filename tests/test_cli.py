@@ -69,3 +69,25 @@ def test_default_command_shows_tasks(mock_env_db_path, monkeypatch):
         main(skip_local=True)
 
     assert "Default Task" in output.getvalue()
+
+
+def test_default_view_hides_done_tasks(mock_env_db_path, monkeypatch):
+    """Completed tasks should not appear in the default listing."""
+    conn = sqlite3.connect(mock_env_db_path)
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (task) VALUES (?)", ["Active Task"])
+    cur.execute(
+        "INSERT INTO tasks (task, dt_completed) VALUES (?, datetime('now'))",
+        ["Finished Task"],
+    )
+    conn.commit()
+    conn.close()
+
+    test_args = ["tasks"]
+    output = StringIO()
+    with patch.object(sys, "argv", test_args), patch("sys.stdout", output):
+        main(skip_local=True)
+
+    rendered = output.getvalue()
+    assert "Active Task" in rendered
+    assert "Finished Task" not in rendered
