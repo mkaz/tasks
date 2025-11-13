@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Task
 A simple command-line task list.
@@ -8,11 +7,11 @@ import sqlite3
 from pathlib import Path
 
 # local
-import tasks.dbactions as db
-import tasks.reports as reports
-from tasks.config import init_args
-from tasks.task import Task
+from . import dbactions as db
+from . import reports
+from .config import init_args
 from .editor import edit_task
+from .task import Task
 
 
 def main(skip_local=False) -> None:
@@ -30,11 +29,9 @@ def main(skip_local=False) -> None:
     # check if taskdb exists
     is_new_db = not dbfile.is_file()
 
-    try:
-        # if dbfile did not exist will be created
-        conn = sqlite3.connect(dbfile)
+    # if dbfile did not exist will be created
+    with sqlite3.connect(dbfile) as conn:
         conn.row_factory = sqlite3.Row
-
         if is_new_db:
             db.create_schema(conn)
 
@@ -45,7 +42,6 @@ def main(skip_local=False) -> None:
             "add": handle_add,
             "show": handle_show,
             "edit": handle_edit,
-            "migrate": lambda c, a: db.migrate_schema(c),
         }
 
         handler = command_handlers.get(command)
@@ -53,11 +49,6 @@ def main(skip_local=False) -> None:
             handler(conn, args)
         else:
             print(f"Unknown or unimplemented command: {command}")
-
-    except sqlite3.Error as e:
-        print(f"Database error: {e}")
-    finally:
-        conn.close()
 
 
 def handle_add(conn: sqlite3.Connection, args: dict) -> None:

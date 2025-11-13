@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from rich import box, print
 from rich.console import Console
@@ -30,15 +30,18 @@ def show_tasks_list(tasks: List[Task]):
     console.print(make_tasks_table(tasks))
 
 
-def show_task_details(task: Task):
-    print(f"Task ID  : {task.id}")
-    print(f"Title    : {task.title}")
-    print(f"Priority : {task.priority}")
-    print(f"State    : {task.state}")
-    print(f"Notes    : {task.notes}")
-    print(f"URL      : {task.url}")
-    print(f"Completed: {task.dt_completed}")
-    print(f"Created  : {task.dt_created}")
+def show_task_details(task: Optional[Task]):
+    if task:
+        print(f"Task ID  : {task.id}")
+        print(f"Title    : {task.title}")
+        print(f"Priority : {task.priority}")
+        print(f"State    : {task.state}")
+        print(f"Notes    : {task.notes}")
+        print(f"URL      : {task.url}")
+        print(f"Completed: {task.dt_completed}")
+        print(f"Created  : {task.dt_created}")
+    else:
+        print("No task found.")
 
 
 def show_tasks_week(new_tasks: List[Task], com_tasks: List[Task]):
