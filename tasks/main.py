@@ -4,6 +4,7 @@ A simple command-line task list.
 """
 
 import sqlite3
+import webbrowser
 from pathlib import Path
 
 # local
@@ -66,9 +67,16 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
         new = db.get_tasks_new(conn, days=7)
         com = db.get_tasks_com(conn, days=7)
         reports.show_tasks_week(new, com)
+
     elif args.get("task_id"):
         task = db.get_task(conn, args["task_id"])
+        if task is None:
+            print(f"Task not found: {args.get('task_id')}")
+            return
         reports.show_task_details(task)
+        ## check for go flag to open URL
+        if args.get("go") and task.url:
+            webbrowser.open(task.url)
     elif args.get("now"):
         tasks = db.get_tasks_by_state(conn, "Now")
         reports.show_tasks(tasks)
