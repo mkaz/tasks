@@ -11,8 +11,8 @@ from pathlib import Path
 import tasks.dbactions as db
 import tasks.reports as reports
 from tasks.config import init_args
-from tasks.editor import edit_task_interactive
 from tasks.task import Task
+from .editor import edit_task
 
 
 def main(skip_local=False) -> None:
@@ -104,7 +104,7 @@ def handle_edit(conn: sqlite3.Connection, args: dict) -> None:
         print(f"No task found with ID {task_id}.")
         return
 
-    edit_task_interactive(conn, task)
+    edit_task(conn, task)
 
 
 if __name__ == "__main__":
