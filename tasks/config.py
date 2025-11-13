@@ -11,6 +11,7 @@ COMMANDS = {
     "add": "Add a new task.",
     "show": "Show tasks (default command). Filter by status or search term.",
     "edit": "Interactively edit an existing task.",
+    "do": "Mark task as done",
 }
 
 __version__ = importlib.metadata.version(__package__)
@@ -127,6 +128,13 @@ def init_args(skip_local=False) -> Dict:
     parser_edit.add_argument(
         "task_id",
         help="Task ID to edit.",
+    )
+
+    # Complete command
+    parser_edit = subparsers.add_parser("do", help=COMMANDS["edit"])
+    parser_edit.add_argument(
+        "task_id",
+        help="Task ID to mark complete.",
     )
 
     # Parse the arguments

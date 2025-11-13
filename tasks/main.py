@@ -43,6 +43,7 @@ def main(skip_local=False) -> None:
             "add": handle_add,
             "show": handle_show,
             "edit": handle_edit,
+            "do": handle_complete,
         }
 
         handler = command_handlers.get(command)
@@ -67,7 +68,6 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
         new = db.get_tasks_new(conn, days=7)
         com = db.get_tasks_com(conn, days=7)
         reports.show_tasks_week(new, com)
-
     elif args.get("task_id"):
         task = db.get_task(conn, args["task_id"])
         if task is None:
@@ -104,6 +104,28 @@ def handle_edit(conn: sqlite3.Connection, args: dict) -> None:
         return
 
     edit_task(conn, task)
+
+
+def handle_complete(conn: sqlite3.Connection, args: dict) -> None:
+    """Handle the complete command."""
+    task_id = args.get("task_id")
+    if not task_id:
+        print("Error: Task ID required.")
+        return
+
+    try:
+        task_id = int(task_id)
+    except ValueError:
+        print("Error: Task ID must be a number.")
+        return
+
+    task = db.get_task(conn, task_id)
+    if not task:
+        print(f"No task found with ID {task_id}.")
+        return
+
+    task.mark_done(conn)
+    print(f"Task {task.id} marked complete.")
 
 
 if __name__ == "__main__":
