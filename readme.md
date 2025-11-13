@@ -63,7 +63,7 @@ Tasks uses a SQLite db to store its data. The program will look in this order fo
 1. If `--db DBFILE` flag on command-line
 2. If `tasks.db` file in current directory
 3. If environment variable `TASKS_DB` is set
-4. Uses your OS data directory
+4. Uses ~/Documents/tasks.db
 
 ### Why SQLite?
 
