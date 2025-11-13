@@ -11,7 +11,6 @@ COMMANDS = {
     "add": "Add a new task.",
     "show": "Show tasks (default command). Filter by status or search term.",
     "edit": "Interactively edit an existing task.",
-    "migrate": "Migrate the database schema.",
 }
 
 __version__ = importlib.metadata.version(__package__)
@@ -129,9 +128,6 @@ def init_args(skip_local=False) -> Dict:
         "task_id",
         help="Task ID to edit.",
     )
-
-    # Migrate command
-    subparsers.add_parser("migrate", help=COMMANDS["migrate"])
 
     # Parse the arguments
     args_for_main_parser = list(remaining)

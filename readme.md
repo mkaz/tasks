@@ -49,9 +49,6 @@ tasks show --now
 
 # Show specific task details
 tasks show 5
-
-# Migrate database schema
-tasks migrate
 ```
 
 `tasks` without a subcommand is equivalent to `tasks show`. Use `tasks show --week` when you want a report of what was completed recently.
