@@ -10,6 +10,7 @@ from typing import Dict
 COMMANDS = {
     "add": "Add a new task.",
     "show": "Show tasks (default command). Filter by status or search term.",
+    "edit": "Interactively edit an existing task.",
     "migrate": "Migrate the database schema.",
 }
 
@@ -120,6 +121,13 @@ def init_args(skip_local=False) -> Dict:
         nargs="?",
         default=[],
         help="Task ID to show details for.",
+    )
+
+    # Edit command
+    parser_edit = subparsers.add_parser("edit", help=COMMANDS["edit"])
+    parser_edit.add_argument(
+        "task_id",
+        help="Task ID to edit.",
     )
 
     # Migrate command

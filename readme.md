@@ -35,6 +35,9 @@ tasks add "Your task description"
 # Add with initial state and priority
 tasks add -s Now -p 1 "High priority task"
 
+# Edit an existing task
+tasks edit 12
+
 # Show all tasks
 tasks show
 

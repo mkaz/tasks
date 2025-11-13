@@ -11,6 +11,7 @@ from pathlib import Path
 import tasks.dbactions as db
 import tasks.reports as reports
 from tasks.config import init_args
+from tasks.editor import edit_task_interactive
 from tasks.task import Task
 
 
@@ -43,6 +44,8 @@ def main(skip_local=False) -> None:
         command_handlers = {
             "add": handle_add,
             "show": handle_show,
+            "edit": handle_edit,
+            "migrate": lambda c, a: db.migrate_schema(c),
         }
 
         handler = command_handlers.get(command)
@@ -81,6 +84,27 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
     else:
         tasks = db.get_tasks(conn)
         reports.show_tasks(tasks)
+
+
+def handle_edit(conn: sqlite3.Connection, args: dict) -> None:
+    """Handle the edit command."""
+    task_id = args.get("task_id")
+    if not task_id:
+        print("Error: Task ID required.")
+        return
+
+    try:
+        task_id = int(task_id)
+    except ValueError:
+        print("Error: Task ID must be a number.")
+        return
+
+    task = db.get_task(conn, task_id)
+    if not task:
+        print(f"No task found with ID {task_id}.")
+        return
+
+    edit_task_interactive(conn, task)
 
 
 if __name__ == "__main__":

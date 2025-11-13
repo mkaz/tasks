@@ -55,6 +55,48 @@ def test_add_task_with_flags(mock_env_db_path, monkeypatch):
     assert row["state"] == "Now"
 
 
+def test_edit_task(mock_env_db_path, monkeypatch):
+    """Test editing a task interactively."""
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("INSERT INTO tasks (title, priority, state, notes) VALUES (?, ?, ?, ?)", ["Original", 2, "Backlog", "Old note"])
+    conn.commit()
+    conn.close()
+
+    responses = iter([
+        "Updated Title",
+        "https://example.com/new",
+        "0",
+        "Now",
+        "Updated note",
+        "y",
+    ])
+
+    def fake_prompt(message, **kwargs):
+        return next(responses)
+
+    monkeypatch.setattr("tasks.editor.prompt", fake_prompt)
+
+    test_args = ["tasks", "edit", "1"]
+    output = StringIO()
+    with patch.object(sys, "argv", test_args), patch("sys.stdout", output):
+        main(skip_local=True)
+
+    conn = sqlite3.connect(mock_env_db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT title, priority, state, notes, url FROM tasks WHERE id = 1")
+    row = cur.fetchone()
+    conn.close()
+
+    assert row["title"] == "Updated Title"
+    assert row["priority"] == 0
+    assert row["state"] == "Now"
+    assert row["notes"] == "Updated note"
+    assert row["url"] == "https://example.com/new"
+
+
 def test_show_tasks(mock_env_db_path, monkeypatch):
     """Test showing tasks."""
     # First add a task so we have something to show
