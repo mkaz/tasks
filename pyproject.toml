@@ -1,6 +1,6 @@
 [project]
 name = "tasks"
-version = "4.0.3"
+version = "4.0.4"
 description = "A simple command-line task list"
 authors = [
     {name = "Marcus Kazmierczak", email = "marcus@mkaz.com"}

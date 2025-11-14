@@ -63,7 +63,7 @@ def make_tasks_table(tasks: List[Task], include_state: bool = False) -> Table:
     table = Table(
         show_header=True,
         padding=(0, 1),
-        width=80,
+        width=100,
         box=box.ASCII,
         expand=False,
     )
