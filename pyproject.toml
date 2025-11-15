@@ -21,6 +21,7 @@ dependencies = [
     "appdirs>=1.4",
     "rich>=13.3",
     "prompt_toolkit>=3.0",
+    "pydantic>=2.12.4",
 ]
 
 [dependency-groups]

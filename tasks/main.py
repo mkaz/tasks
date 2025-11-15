@@ -8,11 +8,10 @@ import webbrowser
 from pathlib import Path
 
 # local
-from . import dbactions as db
 from . import reports
 from .config import init_args
 from .editor import edit_task
-from .task import Task
+from .db import TaskDb
 
 
 def main(skip_local=False) -> None:
@@ -33,8 +32,9 @@ def main(skip_local=False) -> None:
     # if dbfile did not exist will be created
     with sqlite3.connect(dbfile) as conn:
         conn.row_factory = sqlite3.Row
+        task_db = TaskDb(conn)
         if is_new_db:
-            db.create_schema(conn)
+            task_db.create_schema()
 
         command = args["command"] or "show"
 
@@ -48,28 +48,28 @@ def main(skip_local=False) -> None:
 
         handler = command_handlers.get(command)
         if handler:
-            handler(conn, args)
+            handler(task_db, args)
         else:
             print(f"Unknown or unimplemented command: {command}")
 
 
-def handle_add(conn: sqlite3.Connection, args: dict) -> None:
+def handle_add(db: TaskDb, args: dict) -> None:
     """Handle the add command."""
-    task_id = Task.create(conn, args)
+    task_id = db.create_task(args)
     if task_id:
         print(f"Created Task #{task_id}")
     else:
         print("Error: Could not create task.")
 
 
-def handle_show(conn: sqlite3.Connection, args: dict) -> None:
+def handle_show(db: TaskDb, args: dict) -> None:
     """Handle the show command."""
     if args.get("week"):
-        new = db.get_tasks_new(conn, days=7)
-        com = db.get_tasks_com(conn, days=7)
+        new = db.get_tasks_new(days=7)
+        com = db.get_tasks_com(days=7)
         reports.show_tasks_week(new, com)
     elif args.get("task_id"):
-        task = db.get_task(conn, args["task_id"])
+        task = db.get_task(args["task_id"])
         if task is None:
             print(f"Task not found: {args.get('task_id')}")
             return
@@ -78,14 +78,14 @@ def handle_show(conn: sqlite3.Connection, args: dict) -> None:
         if args.get("go") and task.url:
             webbrowser.open(task.url)
     elif args.get("now"):
-        tasks = db.get_tasks_by_state(conn, "Now")
+        tasks = db.get_tasks_by_state("Now")
         reports.show_tasks(tasks)
     else:
-        tasks = db.get_tasks(conn)
+        tasks = db.get_tasks()
         reports.show_tasks(tasks)
 
 
-def handle_edit(conn: sqlite3.Connection, args: dict) -> None:
+def handle_edit(db: TaskDb, args: dict) -> None:
     """Handle the edit command."""
     task_id = args.get("task_id")
     if not task_id:
@@ -98,15 +98,15 @@ def handle_edit(conn: sqlite3.Connection, args: dict) -> None:
         print("Error: Task ID must be a number.")
         return
 
-    task = db.get_task(conn, task_id)
+    task = db.get_task(task_id)
     if not task:
         print(f"No task found with ID {task_id}.")
         return
 
-    edit_task(conn, task)
+    edit_task(db, task)
 
 
-def handle_complete(conn: sqlite3.Connection, args: dict) -> None:
+def handle_complete(db: TaskDb, args: dict) -> None:
     """Handle the complete command."""
     task_id = args.get("task_id")
     if not task_id:
@@ -119,13 +119,15 @@ def handle_complete(conn: sqlite3.Connection, args: dict) -> None:
         print("Error: Task ID must be a number.")
         return
 
-    task = db.get_task(conn, task_id)
+    task = db.get_task(task_id)
     if not task:
         print(f"No task found with ID {task_id}.")
         return
 
-    task.mark_done(conn)
-    print(f"Task {task.id} marked complete.")
+    if db.mark_task_done(task.id):
+        print(f"Task {task.id} marked complete.")
+    else:
+        print(f"Error: Could not mark task {task.id} complete.")
 
 
 if __name__ == "__main__":

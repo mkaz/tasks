@@ -5,7 +5,7 @@ from rich.console import Console
 from rich.table import Table
 
 # local
-from tasks.task import Task
+from .task import Task
 
 
 def get_priority_style(priority: int) -> str:

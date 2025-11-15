@@ -137,6 +137,7 @@ def init_args(skip_local=False) -> Dict:
         help="Task ID to mark complete.",
     )
 
+
     # Parse the arguments
     args_for_main_parser = list(remaining)
 

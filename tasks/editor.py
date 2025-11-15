@@ -4,7 +4,8 @@ from prompt_toolkit import prompt
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.validation import ValidationError, Validator
 
-from tasks.task import Task
+from .db import TaskDb
+from .task import Task, TaskState
 
 PRIORITY_RANGE = range(0, 5)
 STATE_CHOICES = ["Backlog", "Now", "Later", "Done", "Archive"]
@@ -62,7 +63,7 @@ def _confirm_save() -> bool:
     return True
 
 
-def edit_task(conn, task: Task) -> None:
+def edit_task(db: TaskDb, task: Task) -> None:
     """Interactively edit a task, prompting field-by-field."""
     print("+" + "-" * 23 + "+")
     print(f"| Editing Task ID: {task.id:3d}  |")
@@ -107,13 +108,14 @@ def edit_task(conn, task: Task) -> None:
             print("Edit cancelled.")
             return
 
-        assignments = ", ".join(f"{field} = ?" for field in updated.keys())
-        values = list(updated.values())
-        values.append(task.id)
-
-        cur = conn.cursor()
-        cur.execute(f"UPDATE tasks SET {assignments} WHERE id = ?", values)
-        conn.commit()
-        print("Task updated.")
+        if db.update_task(task.id, updated):
+            for key, value in updated.items():
+                if key == "state" and value is not None:
+                    task.state = TaskState(value)
+                else:
+                    setattr(task, key, value)
+            print("Task updated.")
+        else:
+            print("Error updating task.")
     except KeyboardInterrupt:
         print("Edit cancelled.")

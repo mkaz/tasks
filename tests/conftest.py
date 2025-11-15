@@ -3,7 +3,7 @@ import sqlite3
 from pathlib import Path
 import tempfile
 import os
-from tasks.dbactions import create_schema
+from tasks.db import TaskDb
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def temp_db():
         # Connect to the DB and create the schema
         conn = sqlite3.connect(path)
         conn.row_factory = sqlite3.Row
-        create_schema(conn)  # Use the application's schema creation function
+        TaskDb(conn).create_schema()  # Use the application's schema creation function
         conn.close()
 
         # Return the path to the temporary DB

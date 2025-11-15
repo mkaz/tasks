@@ -1,110 +1,53 @@
-from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
 from typing import Optional
-from sqlite3 import Connection
 import re
 
+from pydantic import BaseModel, Field, field_validator
 
-@dataclass
-class Task:
-    id: int
-    title: str
-    priority: int
-    state: str
-    dt_created: str
-    dt_completed: str
-    url: Optional[str] = None
-    notes: Optional[str] = None
 
-    @staticmethod
-    def create(conn: Connection, args: dict) -> Optional[int]:
-        """Creates a new task in the database and returns its ID."""
-        entry_text = args["task_entry"]
-        title_text, url = parse_entry_text(entry_text)
+class TaskState(str, Enum):
+    NOW = "Now"
+    BACKLOG = "Backlog"
+    LATER = "Later"
+    DONE = "Done"
+    ARCHIVE = "Archive"
 
-        cur = conn.cursor()
+    def __str__(self) -> str:
+        return self.value
 
-        columns = ["title", "url"]
-        values = [title_text, url]
 
-        priority = args.get("priority")
-        if priority is not None:
-            columns.append("priority")
-            values.append(priority)
+class Task(BaseModel):
+    id: int = Field(..., ge=1)
+    title: str = Field(..., min_length=1)
+    priority: int = Field(2, ge=0, le=4)
+    state: TaskState = Field(default=TaskState.BACKLOG)
+    dt_created: datetime
+    dt_completed: Optional[datetime] = None
+    url: Optional[str] = Field(default=None)
+    notes: Optional[str] = Field(default=None)
 
-        state = args.get("state")
-        if state:
-            columns.append("state")
-            values.append(state)
+    @field_validator("title", mode="before")
+    @classmethod
+    def normalize_title(cls, value: str) -> str:
+        title = value.strip()
+        if not title:
+            raise ValueError("title cannot be empty")
+        return title
 
-        placeholders = ", ".join(["?"] * len(values))
-        sql = f"INSERT INTO tasks ({', '.join(columns)}) VALUES ({placeholders})"
-        try:
-            cur.execute(sql, values)
-            conn.commit()
-            return cur.lastrowid
-        except Exception:
-            conn.rollback()
+    @field_validator("url", "notes", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
             return None
+        return value.strip() or None
 
-    def mark_done(self, conn: Connection) -> None:
-        """Marks the task as done in the database."""
-        cur = conn.cursor()
-        sql = """
-            UPDATE tasks
-               SET dt_completed = CURRENT_TIMESTAMP
-             WHERE id = ?
-        """
-        try:
-            cur.execute(sql, [self.id])
-            conn.commit()
-        except Exception:
-            conn.rollback()
-
-    def update_details(
-        self, conn: Connection, title_text: str, url: Optional[str] = None, notes: Optional[str] = None
-    ) -> None:
-        """Updates the title and optionally its URL and notes in the database and on the instance.
-        If 'url' or 'notes' is None, those fields are not updated in the database.
-        """
-        cur = conn.cursor()
-
-        fields_to_set = {"title": title_text}
-        values_list = [title_text]
-
-        if url is not None:
-            fields_to_set["url"] = url
-            values_list.append(url)
-
-        if notes is not None:
-            fields_to_set["notes"] = notes
-            values_list.append(notes)
-
-        set_clause = ", ".join(f"{key} = ?" for key in fields_to_set)
-        values_list.append(self.id)
-
-        sql = f"UPDATE tasks SET {set_clause} WHERE id = ?"
-
-        try:
-            cur.execute(sql, values_list)
-            conn.commit()
-
-            self.title = title_text
-            if url is not None:
-                self.url = url
-            if notes is not None:
-                self.notes = notes
-        except Exception:
-            conn.rollback()
-
-    def delete(self, conn: Connection) -> None:
-        """Deletes the task from the database."""
-        cur = conn.cursor()
-        sql = "DELETE FROM tasks WHERE id = ?"
-        try:
-            cur.execute(sql, [self.id])
-            conn.commit()
-        except Exception:
-            conn.rollback()
+    @field_validator("dt_completed", mode="before")
+    @classmethod
+    def normalize_dt_completed(cls, value):
+        if value in (None, "", 0, "0"):
+            return None
+        return value
 
 
 def parse_entry_text(entry_text: str) -> tuple[str, Optional[str]]:
