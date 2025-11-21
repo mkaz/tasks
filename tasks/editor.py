@@ -8,7 +8,7 @@ from .db import TaskDb
 from .task import Task, TaskState
 
 PRIORITY_RANGE = range(0, 5)
-STATE_CHOICES = ["Backlog", "Now", "Later", "Done", "Archive"]
+STATE_CHOICES = [s.value for s in TaskState]
 
 
 class PriorityValidator(Validator):

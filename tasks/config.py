@@ -23,42 +23,12 @@ def init_args(skip_local=False) -> Dict:
     Args:
         skip_local: If True, skip checking for a local tasks.db file (useful for testing)
     """
-    # First check for global flags that cause early exit
-    pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument(
-        "--version", action="store_true", help="Show the application version and exit."
-    )
-    pre_parser.add_argument(
-        "--info",
-        action="store_true",
-        help="Display task database location and version information.",
-    )
-    pre_parser.add_argument(
-        "--db",
-        help="Specify a path to the SQLite database file (overrides default locations).",
-    )
-    pre_args, remaining = pre_parser.parse_known_args()
-
-    # Handle immediate exit flags
-    if pre_args.version:
-        print(f"task v{__version__}")
-        sys.exit()
-
-    # Get the database location before potentially showing info
-    db_loc = pre_args.db if pre_args.db else get_taskdb_loc(skip_local=skip_local)
-
-    if pre_args.info:
-        print(f"Task db: {db_loc}")
-        print(f"Version: v{__version__}")
-        sys.exit()
-
-    # Main parser with common arguments for default 'show' command
     parser = argparse.ArgumentParser(
         description="A simple command-line task manager.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    # Add global arguments and 'show' command arguments to main parser
+    # Global arguments
     parser.add_argument(
         "--db",
         help="Specify a path to the SQLite database file (overrides default locations).",
@@ -139,30 +109,20 @@ def init_args(skip_local=False) -> Dict:
 
 
     # Parse the arguments
-    args_for_main_parser = list(remaining)
-
-    # Handle command detection:
-    # - No args or help: fall through to default command (show)
-    # - First arg is not a known command: show error
-    # - Otherwise: run the specified command
-    if not ("-h" in args_for_main_parser or "--help" in args_for_main_parser):
-        if args_for_main_parser and args_for_main_parser[0] not in subparsers.choices:
-            # First arg is not a command, show error and exit
-            print(f"Error: Unknown command '{args_for_main_parser[0]}'")
-            print("Use 'tasks add \"your task\"' to add a new task.")
-            print("Run 'tasks -h' for available commands.")
-            sys.exit(1)
-
-    parsed_ns = parser.parse_args(args_for_main_parser)
+    parsed_ns = parser.parse_args()
     parsed_args = vars(parsed_ns)
 
-    # Set database location
-    if parsed_args["db"] is None:
-        parsed_args["db"] = db_loc
+    # Handle early exit flags
+    if parsed_args["version"]:
+        print(f"task v{__version__}")
+        sys.exit()
 
-    # Re-check info flag in case it was specified with a command
+    # Set database location
+    db_loc = parsed_args["db"] or get_taskdb_loc(skip_local=skip_local)
+    parsed_args["db"] = db_loc
+
     if parsed_args["info"]:
-        print(f"Task db: {parsed_args['db']}")
+        print(f"Task db: {db_loc}")
         print(f"Version: v{__version__}")
         sys.exit()
 

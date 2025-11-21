@@ -12,6 +12,25 @@ from . import reports
 from .config import init_args
 from .editor import edit_task
 from .db import TaskDb
+from .task import Task
+
+
+def get_task_or_error(db: TaskDb, args: dict) -> Task | None:
+    """Validate task_id and return task, or print error and return None."""
+    task_id = args.get("task_id")
+    if not task_id:
+        print("Error: Task ID required.")
+        return None
+    try:
+        task_id = int(task_id)
+    except ValueError:
+        print("Error: Task ID must be a number.")
+        return None
+    task = db.get_task(task_id)
+    if not task:
+        print(f"No task found with ID {task_id}.")
+        return None
+    return task
 
 
 def main(skip_local=False) -> None:
@@ -87,43 +106,16 @@ def handle_show(db: TaskDb, args: dict) -> None:
 
 def handle_edit(db: TaskDb, args: dict) -> None:
     """Handle the edit command."""
-    task_id = args.get("task_id")
-    if not task_id:
-        print("Error: Task ID required.")
-        return
-
-    try:
-        task_id = int(task_id)
-    except ValueError:
-        print("Error: Task ID must be a number.")
-        return
-
-    task = db.get_task(task_id)
-    if not task:
-        print(f"No task found with ID {task_id}.")
-        return
-
-    edit_task(db, task)
+    task = get_task_or_error(db, args)
+    if task:
+        edit_task(db, task)
 
 
 def handle_complete(db: TaskDb, args: dict) -> None:
     """Handle the complete command."""
-    task_id = args.get("task_id")
-    if not task_id:
-        print("Error: Task ID required.")
-        return
-
-    try:
-        task_id = int(task_id)
-    except ValueError:
-        print("Error: Task ID must be a number.")
-        return
-
-    task = db.get_task(task_id)
+    task = get_task_or_error(db, args)
     if not task:
-        print(f"No task found with ID {task_id}.")
         return
-
     if db.mark_task_done(task.id):
         print(f"Task {task.id} marked complete.")
     else:

@@ -69,7 +69,7 @@ def test_increase_priority(sample_tasks):
 
     # Increase priority
     db = TaskDb(sample_tasks)
-    db.increase_priority(task_id)
+    db.adjust_priority(task_id, increase=True)
 
     # Check priority was increased
     cur.execute("SELECT priority FROM tasks WHERE id = ?", [task_id])
@@ -82,7 +82,7 @@ def test_increase_priority(sample_tasks):
     cur.execute("UPDATE tasks SET priority = 0 WHERE id = ?", [task_id])
     sample_tasks.commit()
 
-    db.increase_priority(task_id)
+    db.adjust_priority(task_id, increase=True)
 
     cur.execute("SELECT priority FROM tasks WHERE id = ?", [task_id])
     boundary_priority = cur.fetchone()["priority"]
@@ -98,7 +98,7 @@ def test_decrease_priority(sample_tasks):
 
     # Decrease priority
     db = TaskDb(sample_tasks)
-    db.decrease_priority(task_id)
+    db.adjust_priority(task_id, increase=False)
 
     # Check priority was decreased
     cur.execute("SELECT priority FROM tasks WHERE id = ?", [task_id])
@@ -111,7 +111,7 @@ def test_decrease_priority(sample_tasks):
     cur.execute("UPDATE tasks SET priority = 4 WHERE id = ?", [task_id])
     sample_tasks.commit()
 
-    db.decrease_priority(task_id)
+    db.adjust_priority(task_id, increase=False)
 
     cur.execute("SELECT priority FROM tasks WHERE id = ?", [task_id])
     boundary_priority = cur.fetchone()["priority"]

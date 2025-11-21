@@ -65,30 +65,11 @@ class TaskDb:
         rows = cur.fetchall()
         return [Task(**dict(row)) for row in rows]
 
-    def increase_priority(self, task_id: int) -> None:
-        """Increase task priority (decrease number)."""
+    def adjust_priority(self, task_id: int, increase: bool) -> None:
+        """Adjust task priority. increase=True raises priority (lower number)."""
         cur = self.conn.cursor()
-        cur.execute(
-            """
-            UPDATE tasks
-               SET priority = MAX(0, priority - 1)
-             WHERE id = ?
-            """,
-            [task_id],
-        )
-        self.conn.commit()
-
-    def decrease_priority(self, task_id: int) -> None:
-        """Decrease task priority (increase number)."""
-        cur = self.conn.cursor()
-        cur.execute(
-            """
-            UPDATE tasks
-               SET priority = MIN(4, priority + 1)
-             WHERE id = ?
-            """,
-            [task_id],
-        )
+        expr = "MAX(0, priority - 1)" if increase else "MIN(4, priority + 1)"
+        cur.execute(f"UPDATE tasks SET priority = {expr} WHERE id = ?", [task_id])
         self.conn.commit()
 
     def set_task_state(self, task_id: int, state: str) -> None:

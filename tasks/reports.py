@@ -7,13 +7,11 @@ from rich.table import Table
 # local
 from .task import Task
 
+PRIORITY_STYLES = {0: "bold red", 1: "bold yellow"}
+
 
 def get_priority_style(priority: int) -> str:
-    if priority == 0:
-        return "bold red"
-    if priority == 1:
-        return "bold yellow"
-    return "green"  # Default for 2 and anything higher
+    return PRIORITY_STYLES.get(priority, "green")
 
 
 def show_tasks(tasks: List[Task]):
@@ -23,11 +21,6 @@ def show_tasks(tasks: List[Task]):
         return
 
     console.print(make_tasks_table(tasks, include_state=True))
-
-
-def show_tasks_list(tasks: List[Task]):
-    console = Console()
-    console.print(make_tasks_table(tasks))
 
 
 def show_task_details(task: Optional[Task]):
