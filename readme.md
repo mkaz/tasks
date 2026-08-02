@@ -66,7 +66,24 @@ Tasks uses a SQLite db to store its data. The program will look in this order fo
 
 SQLite is a common database format available on all platforms and saves to a single file, this makes it portable and easy to reason about. Additionally, SQLite is extrememly stable, the team has committed to supporting the current API and backwards compatibility to 2050.
 
-### Contributions and License
+## Pi Coding Harness Skill
+
+This repository includes a skill that lets [Pi](https://pi.dev) manage your task list. From the repository root, symlink it into Pi's global skills directory:
+
+```bash
+mkdir -p ~/.pi/agent/skills
+ln -s "$(pwd)/skill" ~/.pi/agent/skills/tasks
+```
+
+Restart Pi or run `/reload`, then invoke the skill explicitly:
+
+```text
+/skill:tasks Add "Review the release notes" as a priority 1 Now task
+```
+
+Pi may also load the skill automatically when you ask it to manage your tasks.
+
+## Contributions and License
 
 Tasks is open source and free to use, modify, and distribute. It is licensed under the <a rel="license" href="https://opensource.org/licenses/MIT">MIT License</a>.
 
